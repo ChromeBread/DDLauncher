@@ -1,0 +1,122 @@
+<style>
+ body { font-family: 'Segoe UI', 'Meiryo UI', 'Malgun Gothic', 'Microsoft JhengHei UI', sans-serif; font-size: 10pt; }
+ h2 { font-size: 12pt; border-bottom: 1px solid #888; margin-top: 14px; }
+ code { background: #eee; }
+</style>
+
+<h2>Lire l'affichage</h2>
+<ul>
+ <li>Cadre / voyant <b>gris</b> : arrêté / non configuré</li>
+ <li><b>Vert</b> : en cours (droits normaux)</li>
+ <li><b>Orange</b> : en cours (droits d'administrateur)</li>
+ <li><b>Rouge</b> : réglé sur « Lancer en admin » mais tourne avec les droits normaux</li>
+ <li>Cadre de la tuile OBS : <b>bleu clair</b> = pas de diffusion / <b>rouge</b> = en direct / <b>violet</b> = enregistrement seul. Le nombre au centre est la quantité de données envoyées</li>
+ <li>Tuile qui clignote en orange : la prochaine appli que lancera la séquence</li>
+ <li>En haut à droite d'une tuile : ADMIN / USER / STANDBY (arrêté) / NO PATH (non configuré)</li>
+ <li>GROUP (en colonnes ; LINEAR n'est pas encore disponible) : la molette / ▲▼ fait tourner l'anneau. Les applis d'une même catégorie s'empilent et s'ouvrent sur le côté au survol. Maj+molette / inclinaison fait tourner une rangée</li>
+</ul>
+<p>La disposition (LINEAR / GROUP), les limites en largeur / hauteur et l'action après la séquence (réduire / masquer) se règlent dans « Général » des paramètres.
+Un lanceur masqué se rouvre depuis l'icône de la zone de notification.</p>
+<p>L'affichage normal peut être « Icône seule (déplier au survol) » ou « Toujours déplié » (dans « Général » des paramètres, ou via le menu du clic droit sur une zone vide du lanceur).
+En mode D&amp;D et pendant la séquence, le lanceur reste déplié.</p>
+<p>Changez la taille avec Ctrl+molette sur le lanceur, ou avec « Taille » dans les paramètres.</p>
+<p>Clic gauche sur une icône = lancer (rien si déjà lancé) / clic droit = choisir les droits de lancement.<br>
+Clic droit sur une zone vide du lanceur pour le menu (position, séquence, paramètres, quitter).</p>
+
+<h2>Avantages de lancer OBS en administrateur</h2>
+<ul>
+ <li>OBS peut augmenter sa propre priorité GPU : le « retard de rendu / d'encodage » apparaît moins quand un jeu charge fortement le GPU.</li>
+ <li>La capture de jeu / de fenêtre peut capturer les jeux et applis lancés en administrateur.</li>
+ <li>Certains jeux avec anti-triche ne se capturent que si OBS tourne en administrateur.</li>
+</ul>
+
+<h2>Inconvénients</h2>
+<ul>
+ <li><b>Le glisser-déposer depuis l'Explorateur ne fonctionne plus.</b> (voir plus bas)</li>
+ <li>Une confirmation UAC apparaît à chaque lancement. Au démarrage de Windows, elle apparaît juste après la connexion.</li>
+ <li>Les sources navigateur, plugins et scripts d'OBS tournent aussi en administrateur.
+     Méfiez-vous surtout des plugins d'origine inconnue et des URL des sources navigateur.</li>
+ <li>Les outils lancés avec les droits normaux (AutoHotkey, logiciels de macros, etc.) ne peuvent plus envoyer de touches ni agir sur les fenêtres d'OBS.
+     Pour les raccourcis, mieux vaut piloter OBS via obs-websocket (Stream Deck, etc.).</li>
+ <li>Les fichiers ouverts et programmes lancés depuis OBS tournent aussi en administrateur.</li>
+</ul>
+
+<h2>Pourquoi le glisser-déposer ne fonctionne plus</h2>
+<p>Windows dispose d'un mécanisme appelé UIPI (User Interface Privilege Isolation) qui
+<b>bloque les messages de fenêtre d'un processus aux droits faibles vers un processus aux droits élevés</b>.
+L'Explorateur tourne avec les droits normaux et OBS en administrateur : le dépôt (OLE D&amp;D / WM_DROPFILES)
+n'atteint pas OBS et le curseur affiche « interdit ». Lancer l'Explorateur en administrateur est déconseillé.</p>
+<p>DDLauncher <b>tourne avec les droits normaux</b> : il peut donc recevoir les dépôts de l'Explorateur.
+Il envoie les chemins des fichiers à OBS via <b>obs-websocket (connexion locale)</b>.
+Les connexions réseau ne sont pas concernées par l'UIPI : elles atteignent OBS sans risque, même avec des droits différents.</p>
+<p>Remarque : si vous lancez le lanceur lui-même en administrateur, le D&amp;D ne marche pas pour la même raison (l'en-tête affiche ⚠ADMIN).</p>
+
+<h2>Capture de jeu ou capture de fenêtre</h2>
+<table border="1" cellspacing="0" cellpadding="4">
+ <tr><th></th><th>Capture de jeu</th><th>Capture de fenêtre</th></tr>
+ <tr><td>Fonctionnement</td>
+     <td>S'accroche au rendu du jeu (DirectX / OpenGL / Vulkan) et reçoit directement les images finies</td>
+     <td>Récupère l'image de la fenêtre auprès de Windows (BitBlt, ou Graphics Capture de Windows 10 = WGC)</td></tr>
+ <tr><td>Points forts</td>
+     <td>Jeux en plein écran, fréquence d'images élevée, faible charge.<br>Les fenêtres par-dessus n'apparaissent pas</td>
+     <td>Fonctionne avec toutes les applis (lecteurs de chat, navigateurs, outils).<br>Avec WGC, les navigateurs / applis Electron apparaissent aussi</td></tr>
+ <tr><td>Points faibles</td>
+     <td>Écran noir si l'accroche échoue. Peut être bloquée par l'anti-triche.<br>
+         Les applis normales et navigateurs n'apparaissent pas.<br>Un jeu lancé en administrateur exige OBS en administrateur</td>
+     <td>Rien ne s'affiche quand la fenêtre est réduite (figé / noir).<br>En BitBlt, les applis avec accélération matérielle deviennent noires.<br>
+         Instable avec les jeux en plein écran, et la fréquence d'images chute facilement</td></tr>
+</table>
+<p><b>Que choisir pour diffuser</b></p>
+<ul>
+ <li><b>Jeux → capture de jeu</b> (mode « Capturer une fenêtre spécifique » conseillé.
+     « Capturer n'importe quelle application en plein écran » peut capturer autre chose que le jeu atteint par Alt+Tab)</li>
+ <li><b>Capture de jeu noire → passer en capture de fenêtre (méthode : Windows 10 (1903 et plus))</b>.
+     Si ça ne marche toujours pas, capture d'écran</li>
+ <li><b>Lecteurs de chat, navigateurs, outils → capture de fenêtre</b> (la méthode Windows 10 (1903 et plus) est stable)</li>
+ <li><b>La capture d'écran est le dernier recours</b>. Tout le bureau apparaît, notifications, Discord et saisies de mot de passe compris : attention aux accidents en direct</li>
+ <li>La capture de jeu n'affiche pas les fenêtres par-dessus : utiliser d'autres applis en direct est sans risque.
+     Idem pour la capture de fenêtre, mais <b>l'image se fige si la cible est réduite</b> (restaurez une fois avant la capture les applis lancées avec « Lancer réduit » dans ce lanceur)</li>
+</ul>
+
+<h2>Écrans noirs et autres pièges</h2>
+<ul>
+ <li><b>PC portables (deux GPU)</b> : la capture d'écran devient noire si OBS et l'appli capturée tournent sur des GPU différents.
+     Alignez le GPU d'OBS dans les « Paramètres graphiques » de Windows.</li>
+ <li><b>Vidéos protégées par DRM dans le navigateur</b> (services de streaming, etc.) : noires à cause de la protection. Désactiver l'accélération matérielle
+     du navigateur peut les faire apparaître, mais attention aux questions de droits.</li>
+ <li><b>Applis lancées en administrateur</b> : noires / absentes de la liste en capture de fenêtre depuis un OBS aux droits normaux.
+     → L'une des principales raisons de lancer OBS en administrateur.</li>
+ <li>Capture de jeu noire : activez « Utiliser le hook de compatibilité anti-triche », ou passez en capture d'écran.</li>
+ <li>Une fenêtre lancée réduite peut ne pas apparaître en capture de fenêtre.
+     Remettez-la une fois à sa taille normale après le lancement.</li>
+</ul>
+
+<h2>Séquence de lancement</h2>
+<ul>
+ <li>Lance les applis dans l'ordre des paramètres, chacune « délai en secondes après le lancement de la précédente ». Une appli déjà lancée ne l'est pas deux fois.</li>
+ <li>Placez les DAW et VB-Audio (VoiceMeeter, etc.) en dernier avec un délai plus long pour éviter qu'ils se disputent les périphériques audio.</li>
+ <li>« Lancer réduit » demande seulement à l'appli d'afficher sa fenêtre réduite. Certaines l'ignorent
+     (pour OBS, l'argument <code>--minimize-to-tray</code> est plus fiable).</li>
+ <li>« Nom de l'exe du processus » sert à savoir si l'appli tourne. Pour les applis de type lanceur (un autre exe prend le relais après le démarrage), indiquez le nom de l'exe principal.</li>
+</ul>
+
+<h2>Choisir l'écran</h2>
+<ul>
+ <li>Si vous en choisissez un dans la colonne « Écran de destination », le lanceur attend jusqu'à 30 secondes que la fenêtre apparaisse et la déplace sur cet écran (position relative et état réduit / agrandi conservés).</li>
+ <li><b>Les applis lancées en administrateur ne peuvent pas être déplacées</b> (l'UIPI empêche le lanceur aux droits normaux de les piloter).
+     OBS et les applis similaires retiennent leur dernière position : placez-les une fois à la main, elles y reviendront.</li>
+ <li>Les applis qui affichent un écran de démarrage peuvent ne pas voir leur fenêtre principale déplacée.</li>
+</ul>
+
+<h2>Ports</h2>
+<ul>
+ <li>Enregistrez les ports utilisés par OBS WebSocket (4455), les lecteurs de chat et les outils d'intégration pour vérifier leur état.</li>
+ <li><b>Libre</b> (gris) / <b>Utilisé</b> (vert : par le processus attendu) / <b>Conflit</b> (rouge : par un processus inattendu, ou enregistré deux fois).</li>
+ <li>Indiquez un nom d'exe (ex. <code>obs64.exe</code>) dans « Processus attendu » pour voir un conflit quand une autre appli prend le même port.</li>
+ <li>« Libérer » ferme le processus qui utilise ce port. Les processus lancés en administrateur ne peuvent pas être fermés.
+     En cas de conflit, la solution habituelle est de changer le numéro de port dans les réglages de l'une des applis.</li>
+</ul>
+
+<h2>Réglages côté OBS</h2>
+<p>Dans OBS, activez-le via « Outils » → « Paramètres du serveur WebSocket », puis saisissez le port et le mot de passe
+dans les paramètres de DDLauncher, onglet « Général / OBS ».</p>

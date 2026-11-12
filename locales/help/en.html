@@ -1,0 +1,122 @@
+<style>
+ body { font-family: 'Segoe UI', 'Meiryo UI', 'Malgun Gothic', 'Microsoft JhengHei UI', sans-serif; font-size: 10pt; }
+ h2 { font-size: 12pt; border-bottom: 1px solid #888; margin-top: 14px; }
+ code { background: #eee; }
+</style>
+
+<h2>Reading the display</h2>
+<ul>
+ <li>Frame / lamp <b>gray</b>: stopped / not set</li>
+ <li><b>Green</b>: running (normal rights)</li>
+ <li><b>Orange</b>: running (administrator rights)</li>
+ <li><b>Red</b>: set to "Run as admin" but running with normal rights</li>
+ <li>OBS tile frame: <b>light blue</b> = not streaming / <b>red</b> = streaming / <b>purple</b> = recording only. The number in the middle is the amount of data sent</li>
+ <li>Tile blinking orange: the next app the launch sequence will start</li>
+ <li>Top right of a tile: ADMIN / USER / STANDBY (stopped) / NO PATH (not set)</li>
+ <li>GROUP (columns; LINEAR is not available yet): the wheel / ▲▼ rotates the ring. Apps in the same category stack up and slide out sideways on mouse-over. Shift+wheel / tilt rotates within a row</li>
+</ul>
+<p>Layout (LINEAR / GROUP), the across / down limits and what happens after the sequence (minimize / hide) can be changed under "General" in the settings.
+A hidden launcher can be brought back from the tray icon.</p>
+<p>The normal display can be "Icon only (expand on mouse-over)" or "Always expanded" (under "General" in the settings, or from the right-click menu on the launcher's empty area).
+In D&amp;D mode and during the launch sequence, the launcher stays expanded.</p>
+<p>Change the size with Ctrl+mouse wheel on the launcher, or with "Size" in the settings.</p>
+<p>Left-click an icon = launch (does nothing if already running) / right-click = choose the rights to launch with.<br>
+Right-click the launcher's empty area for the menu (position, sequence, settings, quit).</p>
+
+<h2>Why run OBS as administrator</h2>
+<ul>
+ <li>OBS can raise its own GPU priority, so "rendering lag / encoding lag" is less likely when a game puts heavy load on the GPU.</li>
+ <li>Game Capture / Window Capture can capture games and apps that run as administrator.</li>
+ <li>Some games with anti-cheat can only be captured when OBS runs as administrator.</li>
+</ul>
+
+<h2>Downsides</h2>
+<ul>
+ <li><b>Drag &amp; drop from Explorer stops working.</b> (see below)</li>
+ <li>A UAC prompt appears every time it starts. When started at Windows startup, the UAC prompt appears right after you sign in.</li>
+ <li>Browser sources, plugins and scripts inside OBS all run as administrator too.
+     Be especially careful with plugins of unknown origin and browser source URLs.</li>
+ <li>Tools running with normal rights (AutoHotkey, macro software, etc.) can't send key presses or window actions to OBS.
+     For hotkeys, controlling OBS through obs-websocket (Stream Deck etc.) is recommended.</li>
+ <li>Files opened and programs started from OBS also run as administrator.</li>
+</ul>
+
+<h2>Why drag &amp; drop stops working</h2>
+<p>Windows has a mechanism called UIPI (User Interface Privilege Isolation) that
+<b>blocks window messages from a lower-privilege process to a higher-privilege one</b>.
+Explorer runs with normal rights and OBS as administrator, so the drop (OLE D&amp;D / WM_DROPFILES)
+never reaches OBS and the cursor shows "not allowed". Running Explorer as administrator is not recommended.</p>
+<p>DDLauncher <b>runs with normal rights</b>, so it can receive drops from Explorer.
+It sends the dropped file paths to OBS over <b>obs-websocket (local network connection)</b>.
+Network connections aren't covered by UIPI, so they reach OBS safely even with different rights.</p>
+<p>Note: if you start the launcher itself as administrator, D&amp;D won't work for the same reason (the header shows ⚠ADMIN).</p>
+
+<h2>Game Capture vs. Window Capture</h2>
+<table border="1" cellspacing="0" cellpadding="4">
+ <tr><th></th><th>Game Capture</th><th>Window Capture</th></tr>
+ <tr><td>How it works</td>
+     <td>Hooks into the game's rendering (DirectX / OpenGL / Vulkan) and receives finished frames directly</td>
+     <td>Gets the window image from Windows (BitBlt, or Windows 10 Graphics Capture = WGC)</td></tr>
+ <tr><td>Good at</td>
+     <td>Fullscreen games, high frame rates, low load.<br>Other windows on top don't show up</td>
+     <td>Works with any app (comment viewers, browsers, tools).<br>With WGC, browsers / Electron apps show up too</td></tr>
+ <tr><td>Weak at</td>
+     <td>Black screen if it can't hook. Anti-cheat may block it.<br>
+         Normal apps and browsers don't show up.<br>Games running as administrator need OBS as administrator too</td>
+     <td>Doesn't show while minimized (frozen / black).<br>With BitBlt, hardware-accelerated apps turn black.<br>
+         Unstable with fullscreen games, and the frame rate drops easily</td></tr>
+</table>
+<p><b>What to use when streaming</b></p>
+<ul>
+ <li><b>Games → Game Capture</b> (mode "Capture specific window" is recommended.
+     "Capture any fullscreen application" can end up capturing something other than the game you Alt+Tab to)</li>
+ <li><b>Game Capture is black → switch to Window Capture (method: Windows 10 (1903 and up))</b>.
+     If that doesn't work either, use Display Capture</li>
+ <li><b>Comment viewers, browsers, tools → Window Capture</b> (method Windows 10 (1903 and up) is stable)</li>
+ <li><b>Display Capture is the last resort</b>. Everything on the desktop shows, including notifications, Discord and password fields, so watch out for on-stream accidents</li>
+ <li>Game Capture doesn't show windows on top, so using other apps while streaming is safe.
+     Window Capture is the same, but note that <b>the image freezes when the target is minimized</b> (apps started with "Start minimized" in this launcher should be restored once before capturing)</li>
+</ul>
+
+<h2>Black screens and other pitfalls</h2>
+<ul>
+ <li><b>Laptops (two GPUs)</b>: Display Capture turns black if OBS and the captured app run on different GPUs.
+     Match OBS's GPU in Windows "Graphics settings".</li>
+ <li><b>DRM-protected video in browsers</b> (streaming services etc.) turns black because of the protection. Turning off the browser's hardware acceleration
+     may make it show, but be careful about rights issues.</li>
+ <li><b>Apps running as administrator</b> turn black / don't appear in the list when captured with Window Capture from OBS with normal rights.
+     → One of the main reasons to run OBS as administrator.</li>
+ <li>If Game Capture is black: enable "Use anti-cheat compatibility hook", or switch to Display Capture.</li>
+ <li>Windows started minimized may not show in Window Capture.
+     Restore them to their normal size once after they start.</li>
+</ul>
+
+<h2>Launch sequence</h2>
+<ul>
+ <li>Starts apps in the order set in the settings, each one "delay seconds after the previous app was started". Apps already running are not started twice.</li>
+ <li>Put DAWs and VB-Audio (VoiceMeeter etc.) last with a longer delay to avoid them fighting over audio devices.</li>
+ <li>"Start minimized" only asks the app to show its window minimized. Some apps ignore it
+     (for OBS, the argument <code>--minimize-to-tray</code> is more reliable).</li>
+ <li>"Process exe name" is used to check whether the app is running. For launcher-type apps (where a different exe becomes the main app after start), enter the main exe's name.</li>
+</ul>
+
+<h2>Choosing the monitor</h2>
+<ul>
+ <li>When you choose one in the "Move to monitor" column, the launcher waits up to 30 seconds for the window to appear and moves it to that monitor (keeping its relative position and minimized / maximized state).</li>
+ <li><b>Apps started as administrator can't be moved</b> (UIPI prevents the normal-rights launcher from controlling them).
+     OBS and similar apps remember their last position, so place them once by hand and they'll appear there next time.</li>
+ <li>Apps that show a splash screen right after starting may not have their main window moved.</li>
+</ul>
+
+<h2>Ports</h2>
+<ul>
+ <li>Register the ports used by OBS WebSocket (4455), comment viewers and integration tools to check their status.</li>
+ <li><b>Free</b> (gray) / <b>In use</b> (green: used by the expected process) / <b>Conflict</b> (red: used by an unexpected process, or registered twice).</li>
+ <li>Enter an exe name (e.g. <code>obs64.exe</code>) under "Expected process" to show a conflict when another app grabs the same port.</li>
+ <li>"Free up" closes the process using that port. Processes running as administrator can't be closed.
+     For conflicts, the usual fix is to change the port number in one of the apps' settings.</li>
+</ul>
+
+<h2>OBS settings</h2>
+<p>In OBS, enable it under "Tools" → "WebSocket Server Settings", then enter the port and password
+in DDLauncher's settings under "General / OBS".</p>

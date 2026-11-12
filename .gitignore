@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# PyInstaller output (DDLauncher.spec is kept)
+build/
+dist/
+build_info.json
+
+# Local-only files: screenshots, unrelated downloads, dev notes
+スクリーンショット*.png
+Screenshot*.png
+新しいフォルダー/
+*.zip
+CLAUDE.md
+.claude/

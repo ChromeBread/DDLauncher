@@ -1,0 +1,122 @@
+<style>
+ body { font-family: 'Segoe UI', 'Meiryo UI', 'Malgun Gothic', 'Microsoft JhengHei UI', sans-serif; font-size: 10pt; }
+ h2 { font-size: 12pt; border-bottom: 1px solid #888; margin-top: 14px; }
+ code { background: #eee; }
+</style>
+
+<h2>Cara membaca tampilan</h2>
+<ul>
+ <li>Bingkai / lampu <b>abu-abu</b>: berhenti / belum diatur</li>
+ <li><b>Hijau</b>: berjalan (hak akses normal)</li>
+ <li><b>Oranye</b>: berjalan (hak administrator)</li>
+ <li><b>Merah</b>: diatur "Jalankan sebagai admin", tetapi berjalan dengan hak akses normal</li>
+ <li>Bingkai tile OBS: <b>biru muda</b> = tidak streaming / <b>merah</b> = sedang streaming / <b>ungu</b> = hanya merekam. Angka di tengah adalah jumlah data yang terkirim</li>
+ <li>Tile yang berkedip oranye: aplikasi berikutnya yang akan dijalankan oleh urutan peluncuran</li>
+ <li>Kanan atas tile: ADMIN / USER / STANDBY (berhenti) / NO PATH (belum diatur)</li>
+ <li>GROUP (berkolom; LINEAR belum tersedia): roda / ▲▼ memutar lingkaran. Aplikasi dengan kategori yang sama ditumpuk dan muncul ke samping saat kursor diarahkan. Shift+roda / tilt memutar isi satu baris</li>
+</ul>
+<p>Mode tampilan (LINEAR / GROUP), batas mendatar / menurun, dan tindakan setelah urutan selesai (minimalkan / sembunyikan) bisa diubah di "Umum" pada pengaturan.
+Launcher yang disembunyikan bisa dikembalikan dari ikon tray.</p>
+<p>Tampilan normal bisa dipilih antara "Hanya ikon (terbuka saat kursor diarahkan)" dan "Selalu terbuka" (di "Umum" pada pengaturan, atau dari menu klik kanan di area kosong launcher).
+Dalam mode D&amp;D dan selama urutan peluncuran, launcher tetap terbuka.</p>
+<p>Ukuran bisa diubah dengan Ctrl+roda mouse di atas launcher, atau dengan "Ukuran" di pengaturan.</p>
+<p>Klik kiri ikon = jalankan (tidak melakukan apa-apa jika sudah berjalan) / klik kanan = pilih hak akses lalu jalankan.<br>
+Klik kanan area kosong launcher untuk membuka menu (posisi, urutan, pengaturan, keluar).</p>
+
+<h2>Keuntungan menjalankan OBS sebagai administrator</h2>
+<ul>
+ <li>OBS bisa menaikkan prioritas GPU-nya sendiri, sehingga "rendering lag / encoding lag" lebih jarang muncul saat game membebani GPU.</li>
+ <li>Game Capture / Window Capture bisa menangkap game dan aplikasi yang berjalan sebagai administrator.</li>
+ <li>Beberapa game dengan anti-cheat hanya bisa ditangkap jika OBS berjalan sebagai administrator.</li>
+</ul>
+
+<h2>Kekurangan</h2>
+<ul>
+ <li><b>Drag &amp; drop dari Explorer tidak bisa lagi.</b> (lihat di bawah)</li>
+ <li>Konfirmasi UAC muncul setiap kali dijalankan. Jika dijalankan saat startup, UAC muncul tepat setelah login.</li>
+ <li>Browser source, plugin, dan script di dalam OBS juga berjalan sebagai administrator.
+     Berhati-hatilah terutama dengan plugin dari sumber yang tidak jelas dan URL browser source.</li>
+ <li>Tool dengan hak akses normal (AutoHotkey, software makro, dll.) tidak bisa mengirim input tombol atau operasi jendela ke OBS.
+     Untuk hotkey, disarankan mengontrol lewat obs-websocket (Stream Deck, dll.).</li>
+ <li>File yang dibuka dan program yang dijalankan dari OBS juga berjalan sebagai administrator.</li>
+</ul>
+
+<h2>Mengapa drag &amp; drop tidak bisa</h2>
+<p>Windows punya mekanisme bernama UIPI (User Interface Privilege Isolation) yang
+<b>memblokir pesan jendela dari proses berhak rendah ke proses berhak tinggi</b>.
+Explorer berjalan dengan hak normal dan OBS sebagai administrator, jadi operasi drop (OLE D&amp;D / WM_DROPFILES)
+tidak sampai ke OBS dan kursor berubah menjadi tanda "dilarang". Menjalankan Explorer sebagai administrator tidak disarankan.</p>
+<p>DDLauncher <b>berjalan dengan hak akses normal</b>, sehingga bisa menerima drop dari Explorer.
+Path file yang diterima dikirim ke OBS lewat <b>obs-websocket (koneksi localhost)</b>.
+Koneksi jaringan tidak terkena UIPI, jadi tetap sampai ke OBS dengan aman meskipun hak aksesnya berbeda.</p>
+<p>※ Jika launcher sendiri dijalankan sebagai administrator, D&amp;D tidak bisa dipakai karena alasan yang sama (header menampilkan ⚠ADMIN).</p>
+
+<h2>Perbedaan Game Capture dan Window Capture</h2>
+<table border="1" cellspacing="0" cellpadding="4">
+ <tr><th></th><th>Game Capture</th><th>Window Capture</th></tr>
+ <tr><td>Cara kerja</td>
+     <td>Mengait ke proses render game (DirectX / OpenGL / Vulkan) dan menerima frame jadi secara langsung</td>
+     <td>Mengambil gambar jendela dari Windows (BitBlt, atau Graphics Capture Windows 10 = WGC)</td></tr>
+ <tr><td>Unggul di</td>
+     <td>Game layar penuh, frame rate tinggi, beban rendah.<br>Jendela lain yang menimpa tidak ikut terlihat</td>
+     <td>Bisa dipakai untuk aplikasi apa pun (comment viewer, browser, tool).<br>Dengan WGC, browser / aplikasi Electron juga terlihat</td></tr>
+ <tr><td>Lemah di</td>
+     <td>Layar hitam jika gagal mengait. Bisa diblokir anti-cheat.<br>
+         Aplikasi biasa dan browser tidak terlihat.<br>Game yang berjalan sebagai administrator butuh OBS sebagai administrator juga</td>
+     <td>Tidak terlihat saat diminimalkan (berhenti / hitam).<br>Metode BitBlt membuat aplikasi dengan akselerasi hardware jadi hitam.<br>
+         Tidak stabil untuk game layar penuh, dan frame rate mudah turun</td></tr>
+</table>
+<p><b>Panduan untuk streamer</b></p>
+<ul>
+ <li><b>Game → Game Capture</b> (mode "Capture specific window" disarankan.
+     "Capture any fullscreen application" kadang menangkap sesuatu selain game yang dituju dengan Alt+Tab)</li>
+ <li><b>Game Capture hitam → ganti ke Window Capture (metode: Windows 10 (1903 ke atas))</b>.
+     Jika masih gagal, gunakan Display Capture</li>
+ <li><b>Comment viewer, browser, tool → Window Capture</b> (metode Windows 10 (1903 ke atas) stabil)</li>
+ <li><b>Display Capture adalah pilihan terakhir</b>. Seluruh desktop ikut terlihat, termasuk notifikasi, Discord, dan input kata sandi, jadi waspadai kecelakaan saat siaran</li>
+ <li>Game Capture tidak menampilkan jendela yang menimpa, jadi aman mengoperasikan aplikasi lain saat streaming.
+     Window Capture juga sama, tetapi perhatikan bahwa <b>gambar berhenti jika target diminimalkan</b> (aplikasi yang dijalankan dengan "Mulai diminimalkan" di launcher ini sebaiknya dikembalikan dulu sebelum ditangkap)</li>
+</ul>
+
+<h2>Layar hitam dan hal lain yang perlu diperhatikan</h2>
+<ul>
+ <li><b>Laptop (dua GPU)</b>: Display Capture menjadi hitam jika OBS dan aplikasi yang ditangkap berjalan di GPU berbeda.
+     Samakan GPU OBS di "Pengaturan grafis" Windows.</li>
+ <li><b>Video DRM di browser</b> (layanan streaming, dll.) menjadi hitam karena proteksi. Mematikan akselerasi hardware browser
+     kadang membuatnya terlihat, tetapi perhatikan juga masalah hak cipta.</li>
+ <li><b>Aplikasi yang berjalan sebagai administrator</b> menjadi hitam / tidak muncul di daftar jika ditangkap dengan Window Capture dari OBS berhak normal.
+     → Salah satu alasan utama menjalankan OBS sebagai administrator.</li>
+ <li>Jika Game Capture hitam: aktifkan "Use anti-cheat compatibility hook", atau ganti ke Display Capture.</li>
+ <li>Jendela yang dijalankan dalam keadaan diminimalkan kadang tidak terlihat di Window Capture.
+     Kembalikan ke ukuran normal sekali setelah dijalankan.</li>
+</ul>
+
+<h2>Urutan peluncuran</h2>
+<ul>
+ <li>Menjalankan aplikasi sesuai urutan di pengaturan, masing-masing "jeda detik setelah aplikasi sebelumnya dijalankan". Aplikasi yang sudah berjalan tidak dijalankan dua kali.</li>
+ <li>Taruh DAW dan VB-Audio (VoiceMeeter, dll.) di akhir dengan jeda lebih panjang agar tidak berebut perangkat audio.</li>
+ <li>"Mulai diminimalkan" hanya meminta jendela ditampilkan dalam keadaan diminimalkan. Beberapa aplikasi mengabaikannya
+     (untuk OBS, argumen <code>--minimize-to-tray</code> lebih andal).</li>
+ <li>"Nama exe proses" dipakai untuk memeriksa apakah aplikasi berjalan. Untuk aplikasi tipe launcher (yang setelah dijalankan berpindah ke exe lain), isi dengan nama exe utamanya.</li>
+</ul>
+
+<h2>Memilih monitor</h2>
+<ul>
+ <li>Jika dipilih di kolom "Pindah ke monitor", launcher menunggu jendela muncul hingga 30 detik lalu memindahkannya ke monitor itu (posisi relatif dan status minimal / maksimal tetap dijaga).</li>
+ <li><b>Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan</b> (UIPI mencegah launcher berhak normal mengontrolnya).
+     OBS dan aplikasi sejenis mengingat posisi terakhirnya, jadi cukup letakkan sekali dengan tangan dan lain kali akan muncul di sana.</li>
+ <li>Aplikasi yang menampilkan splash screen tepat setelah dijalankan kadang jendela utamanya tidak ikut pindah.</li>
+</ul>
+
+<h2>Port</h2>
+<ul>
+ <li>Daftarkan port yang dipakai OBS WebSocket (4455), comment viewer, dan tool integrasi untuk memeriksa statusnya.</li>
+ <li><b>Kosong</b> (abu-abu) / <b>Dipakai</b> (hijau: dipakai proses yang diharapkan) / <b>Bentrok</b> (merah: dipakai proses tak terduga, atau terdaftar dua kali).</li>
+ <li>Isi nama exe (misalnya <code>obs64.exe</code>) di "Proses yang diharapkan" agar tampil bentrok jika aplikasi lain memakai port yang sama.</li>
+ <li>"Bebaskan" menutup proses yang memakai port itu. Proses yang berjalan sebagai administrator tidak bisa ditutup.
+     Jika bentrok, biasanya cukup ubah nomor port di pengaturan salah satu aplikasi.</li>
+</ul>
+
+<h2>Pengaturan di OBS</h2>
+<p>Di OBS, aktifkan melalui menu "Tools" → "WebSocket Server Settings", lalu masukkan port dan kata sandinya
+di pengaturan DDLauncher bagian "Umum / OBS".</p>
