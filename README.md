@@ -30,8 +30,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 
 | Version | File | Good for |
 |---|---|---|
-| Installer | `DDLauncher-0.2.1-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
-| Standalone | `DDLauncher-0.2.1-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
+| Installer | `DDLauncher-0.2.2-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
+| Standalone | `DDLauncher-0.2.2-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
 
 - Standalone: unzip it anywhere and run `DDLauncher.exe`.
 - The exe isn't signed, so on first launch Windows SmartScreen ("Windows protected your PC") or your antivirus may warn you. Click "More info" → "Run anyway". If you'd rather check first, run it from source (see "For developers" below).
@@ -79,7 +79,7 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 
 ### D&D mode
 
-- Drop image, video or audio files on the D&D space (or the launcher) to add them as sources to the chosen OBS scene (the current program scene if left empty). Dropping on the launcher can be turned off with ⚙ → "Drop on launcher". If you drop many files at once (5 or more by default), it asks before adding them; change the number with ⚙ → "Confirm multiple drops". Turn on ⚙ → "Folders / mixed files" to drop whole folders and choose which kinds (images, videos, audio) to add, and to set the file extensions for each kind. ⚙ → "Sources added by D&D" sets how new sources start: shown or hidden, playing or stopped (or only the first file playing), volume, mute, loop, audio monitoring, fit to screen, and the source name.
+- Drop image, video or audio files on the D&D space (or the launcher) to add them as sources to the chosen OBS scene (the current program scene if left empty). Dropping on the launcher can be turned off with ⚙ → "Drop on launcher". If you drop many files at once (5 or more by default), it asks before adding them; change the number with ⚙ → "Confirm multiple drops". Turn on ⚙ → "Folders / mixed files" to drop whole folders and choose which kinds (images, videos, audio) to add, and to set the file extensions for each kind. ⚙ → "Sources added by D&D" sets how new sources start: shown or hidden, playing or stopped (or only the first file playing), volume, mute, loop, audio monitoring, fit to screen, and the source name. If a name is already used in OBS, it adds a number automatically, or you can have it ask (add with a number, rename, place the existing source, or skip).
   - "Fit to screen" and **Image Resize Reader for OBS**: if you use Image Resize Reader, leave "Fit to screen" off. It also fits sources added by DDLauncher, and with both on the source ends up shifted or cut off.
 - In D&D mode, the launcher ignores the margin and snaps to the screen edge, so a file can't fall into the gap and land in another window. Turn this off with ⚙ → "Position in D&D mode".
 - The D&D space opens right next to the launcher, touching it but never covering it. Drag a striped corner to change its size, or drag anywhere else to move it (⚙ → "D&D space resizing" lets you resize from the edges too). Size and position are remembered; if you drop it onto the launcher it slides to the nearest edge of the launcher. Right-click it to reset the size or put it back next to the launcher. If you lose track of it, use "Put the D&D space back next to the launcher (default size)" in ⚙.
@@ -133,7 +133,7 @@ To build the folder version (`dist\DDLauncher\`) and the installer (the installe
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
 ```
 
 ### Files

@@ -39,6 +39,7 @@ DEFAULT_EXTS = {   # 種類ごとの既定の拡張子（「種類を選ぶ」�
 ADD_MEDIA_START = ["play", "first", "stop"]
 ADD_MONITOR = ["none", "monitor", "both"]
 ADD_NAME = ["stem", "name"]
+ADD_CONFLICT = ["number", "ask"]
 DND_RESIZE = ["corners", "edges"]   # D&D スペースの大きさを変えるつまみ: 四隅だけ / 四隅と四辺
 COLLAPSE = ["hover", "always"]   # hover = 普段はアイコン 1 個、マウスを乗せると展開 / always = 常に展開
 
@@ -116,6 +117,7 @@ DEFAULTS = {
         "monitor": "none",       # 音声モニタリング: none / monitor（モニターのみ）/ both（モニターと出力）
         "fit": False,            # 画像 / 映像を画面の大きさに合わせる
         "name": "stem",          # ソース名: stem = ファイル名（拡張子なし）/ name = ファイル名（拡張子あり）
+        "on_conflict": "number", # 名前が被ったとき: number = 自動で連番 / ask = どうするか聞く
     }},
     # ポート管理: 使うポートを登録しておき、想定外のプロセスが使っていたら衝突として表示
     "ports": [{"port": 4455, "memo": "OBS WebSocket", "process": "obs64.exe"}],
@@ -243,7 +245,8 @@ def normalize(cfg: dict) -> dict:
     add, default = cfg["obs"]["add"] if isinstance(cfg["obs"].get("add"), dict) else {}, DEFAULTS["obs"]["add"]
     for key in ("visible", "mute", "loop", "restart", "fit"):
         add[key] = bool(add.get(key, default[key]))
-    for key, allowed in (("media_start", ADD_MEDIA_START), ("monitor", ADD_MONITOR), ("name", ADD_NAME)):
+    for key, allowed in (("media_start", ADD_MEDIA_START), ("monitor", ADD_MONITOR), ("name", ADD_NAME),
+                         ("on_conflict", ADD_CONFLICT)):
         if add.get(key) not in allowed:
             add[key] = default[key]
     add["loop_exts"] = parse_exts(add["loop_exts"]) if isinstance(add.get("loop_exts"), (list, str)) else []

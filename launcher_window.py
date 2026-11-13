@@ -14,7 +14,7 @@ import favicon
 import i18n
 import theme
 import winproc
-from obs_bridge import ObsBridge, collect_files, file_kind, fmt_bytes, source_spec
+from obs_bridge import ObsBridge, base_name, collect_files, file_kind, fmt_bytes, name_conflicts, source_spec
 from sequencer import Sequencer, place_on_monitor
 
 tr = i18n.tr
@@ -691,6 +691,7 @@ class LauncherWindow(QWidget):
 
         self.bridge = ObsBridge(cfg["obs"], self)
         self.bridge.finished.connect(lambda ok, msg: self.set_status(("OK " if ok else "NG ") + msg))
+        self.bridge.names_ready.connect(self._resolve_names)
         self.seq = Sequencer(self)
         self.seq.progress.connect(self._on_progress)
         self.seq.done.connect(self._on_seq_done)
@@ -1207,7 +1208,27 @@ class LauncherWindow(QWidget):
 
     def _send_files(self, paths: list[str]) -> None:
         self.set_status(tr("status.sending", n=len(paths)))
-        self.bridge.add_files(paths, self._exts())
+        if self.cfg["obs"]["add"]["on_conflict"] == "ask":
+            self.bridge.check_names(paths, self._exts())   # 先に OBS の名前を見て、被ったら _resolve_names で聞く
+        else:
+            self.bridge.add_files(paths, self._exts())
+
+    def _resolve_names(self, data) -> None:
+        """名前が被ったファイルがあれば、どうするかを選んでもらってから追加する。"""
+        from conflict_dialog import ConflictDialog
+        paths, exts, inputs, taken = data
+        opt = self.cfg["obs"]["add"]
+        conflicts = name_conflicts(paths, opt, taken)
+        if not conflicts:
+            self.bridge.add_files(paths, exts)
+            return
+        clash = {c[0] for c in conflicts}
+        fixed = {base_name(p, opt) for p in paths if p not in clash}
+        d = ConflictDialog(conflicts, fixed, inputs, taken, self)
+        if d.exec() == QDialog.Accepted:
+            self.bridge.add_files(paths, exts, d.plan())
+        else:
+            self.set_status(tr("dnd.many.cancelled"))
 
     def _confirm_many(self, paths: list[str]) -> None:
         """まとめてドロップしたときの確認（大量のソースを誤って OBS に入れる事故を防ぐ）。既定は「いいえ」。"""

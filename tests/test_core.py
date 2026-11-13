@@ -618,6 +618,8 @@ def test_obs_bridge_worker_applies_options():
         def __init__(self, **kw): pass
         def get_current_program_scene(self): return SimpleNamespace(current_program_scene_name="Main")
         def get_input_list(self): return SimpleNamespace(inputs=[{"inputName": "a"}])
+        def get_scene_list(self): return SimpleNamespace(scenes=[{"sceneName": "Main"}])
+        def get_group_list(self): return SimpleNamespace(groups=[])
         def get_video_settings(self): return SimpleNamespace(base_width=1920, base_height=1080)
         def create_input(self, scene, name, kind, settings, enabled):
             calls.append(("create", name, kind, enabled, settings.get("looping")))
@@ -648,6 +650,96 @@ def test_obs_bridge_worker_applies_options():
     fits = [c for c in calls if c[0] == "fit"]
     assert len(fits) == 2 and all(c[2:] == (1920.0, 1080.0) for c in fits)  # 音だけの b.mp3 は合わせない
     assert ("create", "c", "image_source", False, None) in calls            # 画像には音の設定をしない
+
+
+def test_obs_bridge_name_collisions():
+    from types import SimpleNamespace
+    import obs_bridge
+    created, msgs = [], []
+
+    class FakeClient:
+        def __init__(self, **kw): pass
+        def get_current_program_scene(self): return SimpleNamespace(current_program_scene_name="Main")
+        def get_input_list(self): return SimpleNamespace(inputs=[{"inputName": "1 (2)"}])
+        def get_scene_list(self): return SimpleNamespace(scenes=[{"sceneName": "Main"}, {"sceneName": "1"}])
+        def get_group_list(self): return SimpleNamespace(groups=["2"])
+        def create_input(self, scene, name, kind, settings, enabled):
+            if settings.get("file", "").endswith("bad.png"):
+                raise RuntimeError("boom")
+            assert name not in {"1", "1 (2)", "2", "Main"}, name   # OBS 側で使用済みの名前（シーン・グループ含む）は使わない
+            created.append(name)
+            return SimpleNamespace(scene_item_id=len(created))
+        def disconnect(self): pass
+
+    real = obs_bridge.obs.ReqClient
+    obs_bridge.obs.ReqClient = FakeClient
+    try:
+        bridge = obs_bridge.ObsBridge({"host": "h", "port": 1, "password": "", "target_scene": "", "add": {}})
+        bridge.finished.connect(lambda ok, m: msgs.append((ok, m)))
+        bridge._worker([r"C:\a\1.jpg", r"C:\b\1.jpg", r"C:\x\bad.png", r"C:\x\2.png", r"C:\x\Main.png"])
+    finally:
+        obs_bridge.obs.ReqClient = real
+    assert created == ["1 (3)", "1 (4)", "2 (2)", "Main (2)"]          # 失敗した後も残りは続けて追加する
+    assert msgs and msgs[-1][0] is False and "boom" in msgs[-1][1]     # 失敗があったことを知らせる
+
+
+def test_name_conflicts_and_plan():
+    from types import SimpleNamespace
+    import obs_bridge
+    from conflict_dialog import plan_problems
+    paths = [r"C:\a\1.jpg", r"C:\b\1.jpg", r"C:\c\2.jpg", r"C:\d\2.jpg", r"C:\e\3.jpg"]
+    assert obs_bridge.name_conflicts(paths, {}, {"1", "Main"}) == [
+        (r"C:\a\1.jpg", "1", "1 (2)"), (r"C:\b\1.jpg", "1", "1 (3)"), (r"C:\d\2.jpg", "2", "2 (2)")]   # 同じドロップの 2 個目も
+    assert obs_bridge.name_conflicts([r"C:\a\1.jpg"], {"name": "name"}, {"1"}) == []                  # 拡張子ありなら被らない
+    taken = {"1", "Main"}
+    assert plan_problems([{"action": "rename", "name": "new"}], {"3"}, taken) == []
+    assert len(plan_problems([{"action": "rename", "name": " "}], set(), taken)) == 1                   # 空
+    assert len(plan_problems([{"action": "rename", "name": "Main"}], set(), taken)) == 1                # 使用済み
+    assert len(plan_problems([{"action": "rename", "name": "3"}], {"3"}, taken)) == 1                   # ほかのファイルと重複
+    assert plan_problems([{"action": "skip", "name": ""}, {"action": "reuse", "name": "1"}], set(), taken) == []
+
+    calls = []
+
+    class FakeClient:
+        def __init__(self, **kw): pass
+        def get_current_program_scene(self): return SimpleNamespace(current_program_scene_name="Main")
+        def get_input_list(self): return SimpleNamespace(inputs=[{"inputName": "1"}])
+        def get_scene_list(self): return SimpleNamespace(scenes=[{"sceneName": "Main"}])
+        def get_group_list(self): return SimpleNamespace(groups=[])
+        def create_input(self, scene, name, kind, settings, enabled):
+            calls.append(("new", name))
+            return SimpleNamespace(scene_item_id=1)
+        def create_scene_item(self, scene, source, enabled=None):
+            calls.append(("reuse", source))
+            return SimpleNamespace(scene_item_id=2)
+        def disconnect(self): pass
+
+    real = obs_bridge.obs.ReqClient
+    obs_bridge.obs.ReqClient = FakeClient
+    try:
+        bridge = obs_bridge.ObsBridge({"host": "h", "port": 1, "password": "", "target_scene": "", "add": {}})
+        plan = {r"C:\a\1.jpg": ("reuse", "1"), r"C:\b\1.jpg": ("new", "表紙"), r"C:\c\2.jpg": ("skip", None)}
+        bridge._worker([r"C:\a\1.jpg", r"C:\b\1.jpg", r"C:\c\2.jpg", r"C:\e\3.jpg"], None, plan)
+    finally:
+        obs_bridge.obs.ReqClient = real
+    assert calls == [("reuse", "1"), ("new", "表紙"), ("new", "3")]
+
+
+def test_conflict_dialog():
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    from conflict_dialog import ConflictDialog
+    conflicts = [(r"C:\a\1.jpg", "1", "1 (2)"), (r"C:\b\Main.png", "Main", "Main (2)")]
+    d = ConflictDialog(conflicts, {"3"}, inputs={"1"}, taken={"1", "Main"})
+    assert d.combos[0].findData("reuse") >= 0 and d.combos[1].findData("reuse") < 0   # シーンと被ったものは使い回せない
+    assert d.ok.isEnabled() and d.plan() == {r"C:\a\1.jpg": ("new", "1 (2)"), r"C:\b\Main.png": ("new", "Main (2)")}
+    d.combos[1].setCurrentIndex(d.combos[1].findData("rename"))
+    d.edits[1].setText("3")
+    assert not d.ok.isEnabled()                                                       # ほかのファイルと同じ名前
+    d.edits[1].setText("表紙")
+    d._set_all("reuse")                                                               # 「すべて」: 選べない行はそのまま
+    assert d.ok.isEnabled() and d.plan() == {r"C:\a\1.jpg": ("reuse", "1"), r"C:\b\Main.png": ("new", "表紙")}
+    d.deleteLater()
 
 
 def test_startup_approved_value():

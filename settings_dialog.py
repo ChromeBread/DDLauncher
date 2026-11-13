@@ -9,9 +9,9 @@ import unicodedata
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFontMetrics, QGuiApplication, QIcon, QKeySequence, QPainter, QPalette, QPen, QShortcut
-from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QAbstractScrollArea, QAbstractSpinBox, QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
+from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QAbstractScrollArea, QAbstractSpinBox, QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFrame,
                                QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QGroupBox, QInputDialog, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMenu,
-                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStyle, QStyledItemDelegate, QStyleOptionFrame, QTableWidget,
+                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStyle, QStyledItemDelegate, QStyleOptionFrame, QTableView, QTableWidget,
                                QTableWidgetItem, QTabWidget, QToolTip, QVBoxLayout, QWidget)
 
 import about
@@ -279,6 +279,80 @@ class DragRowTable(QTableWidget):
             self.row_moved.emit(src, dst)
 
 
+class FrozenColumn(QTableView):
+    """表の 1 列（表示名）を、横にスクロールしても左端に残す。元の表に重ねた表で、データ・選択・行の高さを共有する。
+
+    Qt の「frozen column」の作例と同じ作り。元の表のその列は常に一番左に置き、この表で覆う。
+    """
+
+    def __init__(self, table: QTableWidget, col: int):
+        super().__init__(table)
+        self.table, self.col = table, col
+        self.setModel(table.model())
+        self.setSelectionModel(table.selectionModel())
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.setEditTriggers(table.editTriggers())
+        self.setAlternatingRowColors(True)
+        self.setFocusPolicy(Qt.NoFocus)
+        self.verticalHeader().hide()
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setFrameShape(QFrame.NoFrame)
+        self.setStyleSheet("QTableView { border-right: 1px solid palette(mid); }")   # 固定した列の境目
+        for c in range(table.columnCount()):
+            self.setColumnHidden(c, c != col)
+        table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)   # 覆った列の下をなめらかに流す
+        table.horizontalHeader().sectionResized.connect(lambda i, _o, n: i == col and self._place())
+        table.horizontalHeader().sectionMoved.connect(lambda *_: self._keep_left())
+        table.verticalHeader().sectionResized.connect(lambda i, _o, n: self.setRowHeight(i, n))
+        table.verticalHeader().geometriesChanged.connect(self._place)   # 行番号の桁が増えたとき
+        table.verticalScrollBar().valueChanged.connect(self.verticalScrollBar().setValue)
+        self.verticalScrollBar().valueChanged.connect(table.verticalScrollBar().setValue)
+        table.installEventFilter(self)
+        self._keep_left()
+
+    def eventFilter(self, obj, e):
+        if e.type() == QEvent.Resize:
+            self._place()
+        return False
+
+    def _keep_left(self) -> None:
+        h = self.table.horizontalHeader()
+        if h.visualIndex(self.col) != 0:
+            h.moveSection(h.visualIndex(self.col), 0)
+        self._place()
+
+    def _place(self, *_) -> None:
+        t = self.table
+        self.setColumnWidth(self.col, t.columnWidth(self.col))
+        f = t.frameWidth()
+        self.setGeometry(t.verticalHeader().width() + f, f, t.columnWidth(self.col),
+                         t.viewport().height() + t.horizontalHeader().height())
+        self.raise_()
+
+
+def fit_columns(table: QTableView, cols, contents: bool) -> None:
+    """列の幅を、見出しの文字（contents=False）または中身（True）に合わせる。
+
+    中身は表示どおりの文字で測る（伏せ字にしている列は伏せ字の幅）。セルに置いた部品（プルダウン等）も測る。
+    """
+    header = table.horizontalHeader()
+    pad = table.style().pixelMetric(QStyle.PM_HeaderMargin) * 2 + 12
+    for c in cols:
+        if contents:
+            w = table.sizeHintForColumn(c)
+            if isinstance(table, QTableWidget):
+                for r in range(table.rowCount()):
+                    widget = table.cellWidget(r, c)
+                    if widget is not None:
+                        w = max(w, widget.sizeHint().width())
+        else:
+            w = header.fontMetrics().horizontalAdvance(str(table.model().headerData(c, Qt.Horizontal))) + pad
+        table.setColumnWidth(c, max(w, 36))
+
+
 class SequenceTimeline(QWidget):
     """起動シーケンスの時間グラフ。1 行 = 起動するアプリ、横軸 = 開始からの秒数。待ち時間は前の印からの線で見せる。"""
     ROW, NAME_W, PAD = 20, 140, 8
@@ -417,7 +491,10 @@ class SettingsDialog(QDialog):
         if sorted(order) == list(range(len(COLS))):
             for visual, logical in enumerate(order):
                 header.moveSection(header.visualIndex(logical), visual)
-        self.table.verticalHeader().setMaximumWidth(180)   # 行見出しに表示名（横にスクロールしても左端に残る）
+        self.frozen = FrozenColumn(self.table, 0)   # 表示名の列は横にスクロールしても左端に残す（行見出しは番号だけ）
+        for h in (header, self.frozen.horizontalHeader()):   # 見出しの右クリック: 列の幅を合わせる
+            h.setContextMenuPolicy(Qt.CustomContextMenu)
+            h.customContextMenuRequested.connect(lambda pos, hh=h: self._col_menu(hh, pos))
         self.table.row_moved.connect(self._move_row)
         self.table.itemChanged.connect(self._clean_delay)
         self._removed: list[tuple[int, dict]] = []   # 削除した行（元に戻す用）
@@ -466,8 +543,20 @@ class SettingsDialog(QDialog):
     def _update_timeline(self) -> None:
         apps = [self._row_app(r) for r in range(self.table.rowCount())]
         self.timeline.set_apps(apps)
-        self.table.setVerticalHeaderLabels([f"{r + 1}  {a['name'][:16]}" for r, a in enumerate(apps)])
+        self.table.setVerticalHeaderLabels([str(r + 1) for r in range(len(apps))])
         self._tl_scroll.setMinimumHeight(min(self.timeline.minimumHeight() + 4, 220))   # 220px までは全部見せ、それ以上はスクロール
+
+    def _col_menu(self, header: QHeaderView, pos) -> None:
+        c = header.logicalIndexAt(pos)
+        every = range(self.table.columnCount())
+        menu = QMenu(self)
+        if c >= 0:
+            menu.addAction(tr("hdr.fit_title"), lambda: fit_columns(self.table, [c], False))
+            menu.addAction(tr("hdr.fit_content"), lambda: fit_columns(self.table, [c], True))
+            menu.addSeparator()
+        menu.addAction(tr("hdr.fit_title_all"), lambda: fit_columns(self.table, every, False))
+        menu.addAction(tr("hdr.fit_content_all"), lambda: fit_columns(self.table, every, True))
+        menu.exec(header.mapToGlobal(pos))
 
     def _monitor_combo(self, current: str) -> QComboBox:
         cb = QComboBox()
@@ -818,6 +907,7 @@ class SettingsDialog(QDialog):
         self.add_fit = WrapCheck(tr("gen.add_fit.check"), add["fit"])
         self.add_fit.setToolTip(tr("gen.add_fit.tip"))   # Image Resize Reader for OBS と両方オンにしない案内
         self.add_name = self._combo("add_name", config.ADD_NAME, add["name"])
+        self.add_conflict = self._combo("add_conflict", config.ADD_CONFLICT, add["on_conflict"])
         self.dnd_ext = {k: QLineEdit(" ".join(e.lstrip(".") for e in self.lcfg["dnd_exts"][k]),
                                      placeholderText=" ".join(e.lstrip(".") for e in config.DEFAULT_EXTS[k]),
                                      toolTip=tr("gen.dnd_ext.tip")) for k in config.DND_KINDS}
@@ -840,7 +930,8 @@ class SettingsDialog(QDialog):
                      ("dnd_resize", self.dnd_resize), ("dnd_reset", reset_row)]),
             ("dnd_src", [("add_visible", self.add_visible), ("add_start", self.add_start), ("add_volume", self.add_volume),
                          ("add_mute", self.add_mute), ("add_loop", self.add_loop), ("add_loop_exts", self.add_loop_exts), ("add_restart", self.add_restart),
-                         ("add_monitor", self.add_monitor), ("add_fit", self.add_fit), ("add_name", self.add_name)]),
+                         ("add_monitor", self.add_monitor), ("add_fit", self.add_fit), ("add_name", self.add_name),
+                         ("add_conflict", self.add_conflict)]),
             ("display", [("collapse", self.collapse), ("mini_icon", self.mini_icon), ("layout", self.layout_mode),
                          ("group_rows", self.group_rows), ("group_cols", self.group_cols), ("max_cols", self.max_cols),
                          ("max_rows", self.max_rows), ("wheel_rotate", self.wheel_rotate), ("keep_rot", self.keep_rot),
@@ -997,7 +1088,7 @@ class SettingsDialog(QDialog):
                                     "loop": self.add_loop.isChecked(), "loop_exts": config.parse_exts(self.add_loop_exts.text()),
                                     "restart": self.add_restart.isChecked(),
                                     "monitor": self.add_monitor.currentData(), "fit": self.add_fit.isChecked(),
-                                    "name": self.add_name.currentData()})
+                                    "name": self.add_name.currentData(), "on_conflict": self.add_conflict.currentData()})
         self.cfg["ports"] = [{"port": self.ports.item(r, 0).text(), "memo": self.ports.item(r, 1).text(),
                               "process": self.ports.item(r, 2).text().strip()}
                              for r in range(self.ports.rowCount())

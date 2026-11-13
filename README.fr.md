@@ -30,8 +30,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 | Version | Fichier | Pour qui |
 |---|---|---|
-| Installateur | `DDLauncher-0.2.1-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
-| Autonome | `DDLauncher-0.2.1-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
+| Installateur | `DDLauncher-0.2.2-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
+| Autonome | `DDLauncher-0.2.2-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
 
 - Version autonome : décompressez-la où vous voulez et lancez `DDLauncher.exe`.
 - L'exe n'est pas signé : au premier lancement, Windows SmartScreen (« Windows a protégé votre ordinateur ») ou votre antivirus peut afficher un avertissement. Cliquez sur « Informations complémentaires » → « Exécuter quand même ». Pour vérifier d'abord, lancez-le depuis les sources (voir « Pour les développeurs » plus bas).
@@ -79,7 +79,7 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 ### Mode D&D
 
-- Déposez des images, vidéos ou fichiers audio sur l’espace D&D (ou sur le lanceur) pour les ajouter comme sources à la scène OBS choisie (la scène de programme actuelle si le champ est vide). Le dépôt sur le lanceur se désactive avec ⚙ → « Dépôt sur le lanceur ». Si vous déposez beaucoup de fichiers d’un coup (5 ou plus par défaut), il demande avant de les ajouter ; changez ce nombre avec ⚙ → « Confirmer les dépôts multiples ». Activez ⚙ → « Dossiers / fichiers mélangés » pour déposer des dossiers entiers et choisir les types à ajouter (images, vidéos, audio), ainsi que les extensions de chaque type. ⚙ → « Sources ajoutées par D&D » règle l’état des nouvelles sources : affichées ou masquées, en lecture ou à l’arrêt (ou seul le premier fichier en lecture), volume, sourdine, boucle, monitoring audio, ajustement à l’écran et nom de la source.
+- Déposez des images, vidéos ou fichiers audio sur l’espace D&D (ou sur le lanceur) pour les ajouter comme sources à la scène OBS choisie (la scène de programme actuelle si le champ est vide). Le dépôt sur le lanceur se désactive avec ⚙ → « Dépôt sur le lanceur ». Si vous déposez beaucoup de fichiers d’un coup (5 ou plus par défaut), il demande avant de les ajouter ; changez ce nombre avec ⚙ → « Confirmer les dépôts multiples ». Activez ⚙ → « Dossiers / fichiers mélangés » pour déposer des dossiers entiers et choisir les types à ajouter (images, vidéos, audio), ainsi que les extensions de chaque type. ⚙ → « Sources ajoutées par D&D » règle l’état des nouvelles sources : affichées ou masquées, en lecture ou à l’arrêt (ou seul le premier fichier en lecture), volume, sourdine, boucle, monitoring audio, ajustement à l’écran et nom de la source. Si un nom est déjà utilisé dans OBS, un numéro est ajouté automatiquement, ou il peut vous demander quoi faire (numéro, renommer, placer la source existante ou ignorer).
   - « Ajuster à l’écran » et **Image Resize Reader for OBS** : si vous utilisez Image Resize Reader, laissez « Ajuster à l’écran » désactivé. Il ajuste aussi les sources ajoutées par DDLauncher, et avec les deux actifs la source se retrouve décalée ou coupée.
 - En mode D&D, le lanceur ignore la marge et se colle au bord de l'écran, pour qu'un fichier ne tombe pas dans le vide et n'atterrisse pas dans une autre fenêtre. Désactivez-le avec ⚙ → « Position en mode D&D ».
 - La zone D&D s’ouvre juste à côté du lanceur, collée sans jamais le recouvrir. Faites glisser un coin rayé pour changer sa taille, ou n’importe quel autre endroit pour la déplacer (⚙ → « Redimensionner l'espace D&D » permet aussi de la redimensionner par les bords). Taille et position sont mémorisées ; déposée sur le lanceur, la zone glisse contre le bord du lanceur le plus proche. Un clic droit permet de rétablir la taille ou de la remettre à côté du lanceur. Si vous la perdez de vue, utilisez « Remettre l'espace D&D à côté du lanceur (taille par défaut) » dans ⚙.
@@ -133,7 +133,7 @@ Pour créer la version dossier (`dist\DDLauncher\`) et l'installateur (l'install
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
 ```
 
 ### Fichiers

@@ -30,8 +30,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 | Versi | File | Cocok untuk |
 |---|---|---|
-| Installer | `DDLauncher-0.2.1-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
-| Standalone | `DDLauncher-0.2.1-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
+| Installer | `DDLauncher-0.2.2-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
+| Standalone | `DDLauncher-0.2.2-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
 
 - Standalone: ekstrak di mana saja lalu jalankan `DDLauncher.exe`.
 - Exe-nya tidak bertanda tangan, jadi saat pertama dijalankan Windows SmartScreen ("Windows melindungi PC Anda") atau antivirus bisa memberi peringatan. Klik "Info selengkapnya" → "Tetap jalankan". Jika ingin memeriksa dulu, jalankan dari kode sumber (lihat "Untuk developer" di bawah).
@@ -79,7 +79,7 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 ### Mode D&D
 
-- Jatuhkan file gambar, video, atau audio ke ruang D&D (atau ke launcher) untuk menambahkannya sebagai source ke scene OBS yang dipilih (scene program saat ini jika dikosongkan). Menjatuhkan ke launcher bisa dimatikan di ⚙ → "Jatuhkan ke launcher". Jika kamu menjatuhkan banyak file sekaligus (bawaan: 5 atau lebih), launcher bertanya dulu sebelum menambahkannya; ubah jumlahnya di ⚙ → "Konfirmasi saat menjatuhkan banyak file". Aktifkan ⚙ → "Folder / file campuran" untuk menjatuhkan seluruh folder dan memilih jenis yang ditambahkan (gambar, video, audio), serta mengatur ekstensi file untuk tiap jenis. Di ⚙ → "Source yang ditambahkan lewat D&D" kamu bisa mengatur source baru: tampil atau tersembunyi, langsung diputar atau berhenti (atau hanya file pertama yang diputar), volume, bisu, ulangi, pemantauan audio, sesuaikan layar, dan nama source.
+- Jatuhkan file gambar, video, atau audio ke ruang D&D (atau ke launcher) untuk menambahkannya sebagai source ke scene OBS yang dipilih (scene program saat ini jika dikosongkan). Menjatuhkan ke launcher bisa dimatikan di ⚙ → "Jatuhkan ke launcher". Jika kamu menjatuhkan banyak file sekaligus (bawaan: 5 atau lebih), launcher bertanya dulu sebelum menambahkannya; ubah jumlahnya di ⚙ → "Konfirmasi saat menjatuhkan banyak file". Aktifkan ⚙ → "Folder / file campuran" untuk menjatuhkan seluruh folder dan memilih jenis yang ditambahkan (gambar, video, audio), serta mengatur ekstensi file untuk tiap jenis. Di ⚙ → "Source yang ditambahkan lewat D&D" kamu bisa mengatur source baru: tampil atau tersembunyi, langsung diputar atau berhenti (atau hanya file pertama yang diputar), volume, bisu, ulangi, pemantauan audio, sesuaikan layar, dan nama source. Jika nama sudah dipakai di OBS, nomor ditambahkan otomatis, atau kamu bisa memilih agar ditanya dulu (tambah nomor, ganti nama, tempatkan source yang ada, atau lewati).
   - "Sesuaikan layar" dan **Image Resize Reader for OBS**: jika kamu memakai Image Resize Reader, matikan "Sesuaikan layar". Source yang ditambahkan DDLauncher juga disesuaikan oleh Image Resize Reader, jadi jika keduanya aktif posisinya bisa bergeser atau terpotong.
 - Dalam mode D&D, launcher mengabaikan margin dan menempel ke tepi layar, agar file tidak jatuh ke celah dan masuk ke jendela lain. Matikan dengan ⚙ → "Posisi saat D&D".
 - Ruang D&D muncul tepat di samping launcher, menempel tetapi tidak menutupinya. Seret salah satu sudut bergaris untuk mengubah ukurannya, atau seret bagian lain untuk memindahkannya (di ⚙ → "Ubah ukuran ruang D&D" kamu bisa mengubah ukuran dari sisi juga). Ukuran dan posisi diingat; bila dijatuhkan di atas launcher, ruang itu bergeser menempel ke sisi launcher yang terdekat. Klik kanan untuk mengembalikan ukuran atau menaruhnya kembali di samping launcher. Jika ruang D&D hilang, pakai "Kembalikan ruang D&D ke samping launcher (ukuran bawaan)" di ⚙.
@@ -133,7 +133,7 @@ Untuk membuat versi folder (`dist\DDLauncher\`) dan installer (installer memerlu
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
 ```
 
 ### Daftar file

@@ -98,29 +98,77 @@ def fit_transform(width: int, height: int) -> dict:
             "boundsType": "OBS_BOUNDS_SCALE_INNER", "boundsAlignment": 0, "boundsWidth": float(width), "boundsHeight": float(height)}
 
 
+def base_name(path: str, opt: dict) -> str:
+    """ソース名の元（設定でファイル名の拡張子あり / なし）。"""
+    name = os.path.basename(path)
+    return name if opt.get("name") == "name" else os.path.splitext(name)[0]
+
+
+def taken_names(client) -> tuple[set[str], set[str]]:
+    """(ソースの名前, 使用済みの名前)。OBS ではシーンとグループもソースと同じ名前の枠を使うので、使用済みに含める。"""
+    inputs = {i["inputName"] for i in client.get_input_list().inputs}
+    taken = inputs | {s["sceneName"] for s in client.get_scene_list().scenes} | set(client.get_group_list().groups)
+    return inputs, taken
+
+
+def name_conflicts(paths: list[str], opt: dict, taken: set[str]) -> list[tuple[str, str, str]]:
+    """名前が被るファイル: [(パス, 元の名前, 連番を付けた案)]。同じドロップの中で被るもの（2 個目以降）も含む。"""
+    used, out = set(taken), []
+    for p in paths:
+        base = base_name(p, opt)
+        if base in used:
+            suggestion = unique_name(base, used)
+            out.append((p, base, suggestion))
+            used.add(suggestion)
+        else:
+            used.add(base)
+    return out
+
+
 class ObsBridge(QObject):
     finished = Signal(bool, str)  # (成功, メッセージ) — ワーカースレッドから emit、Qt がメインスレッドへ配送
+    names_ready = Signal(object)  # check_names の結果: (paths, exts, ソースの名前, 使用済みの名前)
 
     def __init__(self, obs_cfg: dict, parent=None):
         super().__init__(parent)
         self.cfg = obs_cfg
 
-    def add_files(self, paths: list[str], exts: dict | None = None) -> None:
-        # 接続待ちで UI を固めないよう別スレッドで実行
-        threading.Thread(target=self._worker, args=(list(paths), exts), daemon=True).start()
+    def _connect(self):
+        return obs.ReqClient(host=self.cfg["host"], port=int(self.cfg["port"]), password=self.cfg["password"], timeout=3)
 
-    def _worker(self, paths: list[str], exts: dict | None = None) -> None:
+    def check_names(self, paths: list[str], exts: dict | None = None) -> None:
+        """追加する前に OBS の使用済みの名前を取りに行く（名前が被ったらどうするか聞くため）。"""
+        threading.Thread(target=self._names_worker, args=(list(paths), exts), daemon=True).start()
+
+    def _names_worker(self, paths: list[str], exts: dict | None) -> None:
         try:
-            client = obs.ReqClient(host=self.cfg["host"], port=int(self.cfg["port"]),
-                                   password=self.cfg["password"], timeout=3)
+            client = self._connect()
+        except Exception as e:
+            self.finished.emit(False, tr("obs.connect_failed", e=e))
+            return
+        try:
+            self.names_ready.emit((paths, exts, *taken_names(client)))
+        except Exception as e:
+            self.finished.emit(False, tr("obs.error", e=e))
+        finally:
+            client.disconnect()
+
+    def add_files(self, paths: list[str], exts: dict | None = None, plan: dict | None = None) -> None:
+        """plan = {パス: ("new", 名前) / ("reuse", 既存のソース名) / ("skip", None)}。無いファイルはファイル名で追加。"""
+        # 接続待ちで UI を固めないよう別スレッドで実行
+        threading.Thread(target=self._worker, args=(list(paths), exts, plan), daemon=True).start()
+
+    def _worker(self, paths: list[str], exts: dict | None = None, plan: dict | None = None) -> None:
+        try:
+            client = self._connect()
         except Exception as e:
             self.finished.emit(False, tr("obs.connect_failed", e=e))
             return
         try:
             scene = self.cfg.get("target_scene") or \
                 client.get_current_program_scene().current_program_scene_name
-            existing = {i["inputName"] for i in client.get_input_list().inputs}
-            added = 0
+            existing = taken_names(client)[1]
+            added, failed = 0, []
             opt = self.cfg.get("add") or {}
             canvas = client.get_video_settings() if opt.get("fit") else None
             first_media = True
@@ -129,20 +177,41 @@ class ObsBridge(QObject):
                 if not spec:
                     continue
                 kind, settings = spec
+                action, wanted = (plan or {}).get(p, ("new", None))
+                if action == "skip":
+                    continue
+                if action == "reuse":   # 既存のソースをこのシーンにもう 1 つ配置する（音量などはそのソースの設定のまま）
+                    try:
+                        item = client.create_scene_item(scene, wanted, bool(opt.get("visible", True)))
+                        added += 1
+                        if canvas and file_kind(p, exts) != "audio":
+                            client.set_scene_item_transform(scene, item.scene_item_id, fit_transform(canvas.base_width, canvas.base_height))
+                    except Exception as e:
+                        failed.append(e)
+                    continue
                 media = kind == "ffmpeg_source"
                 if media:
                     settings.update(looping=loops(p, opt), restart_on_activate=bool(opt.get("restart", True)))
-                base = os.path.basename(p) if opt.get("name") == "name" else os.path.splitext(os.path.basename(p))[0]
-                name = unique_name(base, existing)
-                item = client.create_input(scene, name, kind, settings, bool(opt.get("visible", True)))
+                name = unique_name(wanted or base_name(p, opt), existing)   # 聞いている間に OBS 側で埋まっても被らないように
+                try:   # 1 個失敗しても残りのファイルは続けて追加する
+                    item = client.create_input(scene, name, kind, settings, bool(opt.get("visible", True)))
+                except Exception as e:
+                    failed.append(e)
+                    continue
                 existing.add(name)
                 added += 1
-                if media:
-                    apply_media_options(client, name, opt, first_media)
-                    first_media = False
-                if canvas and file_kind(p, exts) != "audio":   # 音だけのファイルは画面に出ないので合わせない
-                    client.set_scene_item_transform(scene, item.scene_item_id, fit_transform(canvas.base_width, canvas.base_height))
-            self.finished.emit(True, tr("obs.added", scene=scene, n=added))
+                try:
+                    if media:
+                        apply_media_options(client, name, opt, first_media)
+                        first_media = False
+                    if canvas and file_kind(p, exts) != "audio":   # 音だけのファイルは画面に出ないので合わせない
+                        client.set_scene_item_transform(scene, item.scene_item_id, fit_transform(canvas.base_width, canvas.base_height))
+                except Exception as e:
+                    failed.append(e)
+            if failed:
+                self.finished.emit(False, tr("obs.added_partial", scene=scene, n=added, m=len(failed), e=failed[0]))
+            else:
+                self.finished.emit(True, tr("obs.added", scene=scene, n=added))
         except Exception as e:
             self.finished.emit(False, tr("obs.error", e=e))
         finally:
