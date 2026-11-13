@@ -132,6 +132,7 @@ Even when OBS runs as administrator and refuses drops from Explorer, dropping on
 - **Installer version**: uninstall DDLauncher from Windows Settings → Apps. It first asks whether to use the safe uninstaller to export or remove your settings.
 - **Standalone version**: to remove the settings too, run `DDLauncher-Uninstall.exe` first, then delete the folder.
 - **Safe uninstaller** (`DDLauncher-Uninstall.exe`): export your settings first, review what it found (the settings folder, `DDLauncher*.exe` files including older versions, and the Windows startup entry), and move only the checked items to the Recycle Bin. Files unrelated to DDLauncher are never listed. The shared `%APPDATA%\CBApps\` folder is removed only when it is empty.
+  - **Why "safe"?** Over the years, some games' uninstallers have removed far more than they should — unrelated folders, and in the worst cases everything on a drive. Others leave settings and old files behind that quietly pile up on your PC. DDLauncher's uninstaller is built with both in mind: it shows you everything it found before doing anything, removes only what DDLauncher itself created, checks each item once more right before removing it, and moves things to the Recycle Bin instead of deleting them outright. If you change your mind, you can put them back from there. Please uninstall with peace of mind.
 
 ## Notes
 

@@ -132,6 +132,7 @@ Saat OBS berjalan sebagai administrator, file yang dijatuhkan dari Explorer tida
 - **Versi installer**: copot DDLauncher dari Pengaturan Windows → Aplikasi. Di awal akan ditanya apakah ingin memakai pencopot aman untuk mengekspor atau menghapus pengaturan.
 - **Versi standalone**: untuk ikut menghapus pengaturan, jalankan `DDLauncher-Uninstall.exe` dulu, lalu hapus foldernya.
 - **Pencopot aman** (`DDLauncher-Uninstall.exe`): ekspor pengaturan dulu, periksa yang ditemukan (folder pengaturan, file `DDLauncher*.exe` termasuk versi lama, dan entri mulai otomatis Windows), lalu pindahkan hanya yang dicentang ke Recycle Bin. File yang tidak terkait DDLauncher tidak pernah ditampilkan. Folder bersama `%APPDATA%\CBApps\` hanya dihapus jika kosong.
+  - **Kenapa "aman"?** Selama ini pernah ada uninstaller game tertentu yang menghapus jauh lebih banyak dari seharusnya — folder yang tidak berhubungan, bahkan dalam kasus terburuk seluruh isi sebuah drive. Sebaliknya, ada juga yang meninggalkan pengaturan dan file lama yang diam-diam menumpuk di PC. Uninstaller DDLauncher dibuat agar keduanya tidak terjadi: semua yang ditemukan ditampilkan dulu sebelum apa pun dilakukan, hanya yang dibuat oleh DDLauncher yang dihapus, tiap item diperiksa sekali lagi tepat sebelum dihapus, lalu dipindahkan ke Recycle Bin, bukan langsung dihapus. Kalau ternyata masih dibutuhkan, Anda bisa mengembalikannya dari sana. Silakan gunakan dengan tenang.
 
 ## Catatan
 
