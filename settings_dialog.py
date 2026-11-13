@@ -1,16 +1,18 @@
 """設定ダイアログ。ランチャー 1 つ分のアプリ一覧 + ポート管理 + 全体設定を編集する。"""
 import copy
+import datetime
 import json
 import os
 import re
+import subprocess
 import unicodedata
 
-from PySide6.QtCore import QEvent, QPoint, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QGuiApplication, QIcon, QKeySequence, QPainter, QPalette, QPen, QShortcut
-from PySide6.QtWidgets import (QAbstractItemView, QAbstractScrollArea, QAbstractSpinBox, QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox,
-                               QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QGroupBox, QInputDialog, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem,
-                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QTableWidget,
-                               QTableWidgetItem, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QBrush, QColor, QFontMetrics, QGuiApplication, QIcon, QKeySequence, QPainter, QPalette, QPen, QShortcut
+from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QAbstractScrollArea, QAbstractSpinBox, QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
+                               QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QGroupBox, QInputDialog, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMenu,
+                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStyledItemDelegate, QTableWidget,
+                               QTableWidgetItem, QTabWidget, QToolTip, QVBoxLayout, QWidget)
 
 import about
 import config
@@ -19,6 +21,7 @@ import i18n
 from obs_bridge import unique_name
 import sequencer
 import sound
+import startup_items
 import theme
 import winproc
 
@@ -32,9 +35,14 @@ MONITOR_COL = [c[0] for c in COLS].index("monitor")
 PATH_COL = [c[0] for c in COLS].index("path")
 ICON_COL = [c[0] for c in COLS].index("icon")
 DELAY_COL = [c[0] for c in COLS].index("delay_sec")
+ADDRESS_COLS = [[c[0] for c in COLS].index(k) for k in ("path", "icon", "args")]   # アドレス表示がオフのとき伏せ字にする列
+MASK = "••••••••"
 PORT_COLS = [("port", 70), ("memo", 180), ("process", 130), ("status", 330)]   # 見出しは pcol.<キー>
 PORT_COLORS = {"free": "#808080", "used": "#2a9d6a", "conflict": "#d33c3c", "moved": "#d08a1a"}
 OTHER = "other"   # 未登録の使用中ポート行の目印
+AR_COLS = [("enabled", 60), ("name", 190), ("when", 190), ("source", 230), ("command", 420)]   # 自動起動タブ。見出しは arcol.<キー>
+AR_NAME, AR_COMMAND = 1, 4
+BAD_FILENAME = set('\\/:*?"<>|')
 
 
 def _setup_columns(table: QTableWidget, cols, widths: list[int], prefix: str, tips: bool) -> None:
@@ -72,6 +80,101 @@ class WrapCheck(QWidget):
 
     def setChecked(self, on: bool) -> None:
         self.box.setChecked(on)
+
+
+class ToggleSwitch(QAbstractButton):
+    """トグルスイッチ風のボタン。つまみの位置・色・ON / OFF の文字で、今の状態がひと目で分かる。
+
+    アニメーションはしない（押したときに 1 回描き直すだけで軽い）。
+    """
+    TRACK_W, TRACK_H, GAP = 36, 18, 8
+
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent)
+        self.setText(text)
+        self.setCheckable(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self._flash = False
+
+    def flash(self) -> None:
+        """少しの間だけ枠を光らせて、ここを押せば良いと知らせる。"""
+        self._flash = True
+        self.update()
+        QTimer.singleShot(1500, self._unflash)
+
+    def _unflash(self) -> None:
+        self._flash = False
+        self.update()
+
+    def _bold(self):
+        f = self.font()
+        f.setBold(True)
+        return f
+
+    def sizeHint(self) -> QSize:
+        fm = self.fontMetrics()
+        bold = QFontMetrics(self._bold())
+        w = 4 + self.TRACK_W + self.GAP + fm.horizontalAdvance(self.text() + "  ") + bold.horizontalAdvance("OFF") + 8
+        return QSize(w, max(self.TRACK_H, fm.height()) + 10)
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        pal = self.palette()
+        on = self.isChecked()
+        accent = pal.color(QPalette.Highlight)
+        if self._flash:
+            p.setPen(QPen(QColor("#e8a33d"), 2))
+            p.setBrush(Qt.NoBrush)
+            p.drawRoundedRect(QRectF(self.rect()).adjusted(1, 1, -1, -1), 6, 6)
+        h = self.TRACK_H
+        y = (self.height() - h) / 2
+        track = QRectF(4, y, self.TRACK_W, h)
+        p.setPen(Qt.NoPen)
+        p.setBrush(accent if on else pal.color(QPalette.Mid))
+        p.drawRoundedRect(track, h / 2, h / 2)
+        d = h - 4
+        p.setBrush(QColor("white"))
+        p.drawEllipse(QRectF(track.right() - 2 - d if on else track.left() + 2, y + 2, d, d))   # ON = つまみが右
+        x = track.right() + self.GAP
+        label = self.text() + "  "
+        p.setPen(pal.color(QPalette.WindowText if self.isEnabled() else QPalette.PlaceholderText))
+        p.drawText(QRectF(x, 0, self.width() - x, self.height()), Qt.AlignVCenter | Qt.AlignLeft, label)
+        x += self.fontMetrics().horizontalAdvance(label)
+        p.setFont(self._bold())
+        p.setPen(accent if on else pal.color(QPalette.WindowText))
+        p.drawText(QRectF(x, 0, self.width() - x, self.height()), Qt.AlignVCenter | Qt.AlignLeft, "ON" if on else "OFF")
+        if self.hasFocus():
+            p.setPen(QPen(pal.color(QPalette.Highlight), 1, Qt.DotLine))
+            p.setBrush(Qt.NoBrush)
+            p.drawRoundedRect(QRectF(self.rect()).adjusted(2, 2, -2, -2), 4, 4)
+
+
+class MaskDelegate(QStyledItemDelegate):
+    """隠している間は、セルの中身を伏せ字で描く（空のセルは空のまま）。編集やツールチップも止めて案内を出す。"""
+
+    def __init__(self, hidden, on_blocked, parent=None):
+        super().__init__(parent)
+        self._hidden = hidden          # () -> bool
+        self._on_blocked = on_blocked  # 隠している間に編集しようとしたとき
+
+    def displayText(self, value, locale) -> str:
+        if self._hidden() and str(value):
+            return MASK
+        return super().displayText(value, locale)
+
+    def createEditor(self, parent, option, index):
+        if self._hidden():
+            self._on_blocked()
+            return None
+        return super().createEditor(parent, option, index)
+
+    def helpEvent(self, event, view, option, index) -> bool:
+        if self._hidden():   # ツールチップにパスが出ないように
+            QToolTip.showText(event.globalPos(), tr("addr.locked"), view)
+            return True
+        return super().helpEvent(event, view, option, index)
 
 
 def message(parent, title: str, text: str, warn: bool = False) -> None:
@@ -198,6 +301,7 @@ class SequenceTimeline(QWidget):
 
 class SettingsDialog(QDialog):
     sound_apply = Signal(object, bool)   # サウンドプロファイルの「適用」: (プロファイル, 音量とミュートも戻すか)
+    dnd_reset = Signal()   # 「D&D スペースを隣に戻す」: ランチャーにすぐ反映してもらう
     colors_preview = Signal(object, int)   # カラーエディターで色 / 不透明度が変わった: (custom の色 dict / 標準なら None, 不透明度 %)
 
     def __init__(self, launcher_index: int, cfg: dict, parent=None):
@@ -210,9 +314,10 @@ class SettingsDialog(QDialog):
         self.resize(1000, 620)   # 起動アプリの表と時間グラフが両方見える高さ
         self.cfg = copy.deepcopy(cfg)
         self.lcfg = self.cfg["launchers"][launcher_index]
-        self.monitors = winproc.monitors()
+        self.monitors = winproc.monitors(labels=True)
         self.listening: dict = {}
         self.imported = None   # インポートしたら、呼び出し側がこの設定で作り直す
+        self._addr_labels: list[tuple[QLabel, str]] = []   # アドレスを出すラベルと元の文字（隠すときは伏せ字に）
 
         tabs = self.tabs = QTabWidget()
         tabs.addTab(self._apps_tab(), tr("set.tab.apps"))
@@ -220,8 +325,10 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._general_tab(), tr("set.tab.general"))
         tabs.addTab(self._color_tab(), tr("set.tab.colors"))
         self.sound_tab_index = tabs.addTab(self._sound_tab(), tr("set.tab.sound"))   # Debug Mode ON のときだけ見せる
+        self.autorun_tab_index = tabs.addTab(self._autorun_tab(), tr("set.tab.autorun"))   # Debug Mode ON のときだけ見せる
         tabs.addTab(self._info_tab(), tr("set.tab.info"))
         tabs.currentChanged.connect(lambda _: self._fill_mini_icon())   # 起動アプリ タブで足したアプリも選べるように
+        tabs.currentChanged.connect(self._ar_shown)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.button(QDialogButtonBox.Ok).setText(tr("btn.ok"))
         buttons.button(QDialogButtonBox.Cancel).setText(tr("btn.cancel"))
@@ -229,7 +336,19 @@ class SettingsDialog(QDialog):
         buttons.rejected.connect(self.reject)
         lay = QVBoxLayout(self)
         lay.addWidget(tabs)
-        lay.addWidget(buttons)
+        self.addr_btn = ToggleSwitch(tr("addr.label"))
+        self.addr_btn.setToolTip(tr("addr.tip"))
+        self.addr_btn.toggled.connect(self._show_addresses)
+        mask = MaskDelegate(lambda: not self.addr_btn.isChecked(), self._address_locked, self)
+        for c in ADDRESS_COLS:   # 列は残し、中身だけ伏せ字にする（入力済みかどうかは見える）
+            self.table.setItemDelegateForColumn(c, mask)
+        self.ar_table.setItemDelegateForColumn(AR_COMMAND, mask)
+        bottom = QHBoxLayout()
+        bottom.addWidget(self.addr_btn)
+        bottom.addStretch()
+        bottom.addWidget(buttons)
+        lay.addLayout(bottom)
+        self._show_addresses(False)   # 配信に映らないよう、開くたびに隠した状態から始める
         QApplication.instance().installEventFilter(self)   # 後から足す行のプルダウンにも効かせるため app 全体で見る
         for w in self.findChildren(QAbstractSpinBox) + self.findChildren(QComboBox):   # ここまでに作った欄（後から足す欄は Polish で）
             w.setFocusPolicy(Qt.StrongFocus)
@@ -322,7 +441,9 @@ class SettingsDialog(QDialog):
         cb.addItem(tr("monitor.none"), "")
         for i, m in enumerate(self.monitors, 1):
             l, t, r, b = m["rect"]
-            label = f"{i}: {m['name'].removeprefix(chr(92) * 2 + '.' + chr(92))} {r - l}x{b - t}"   # \\.\DISPLAY1 → DISPLAY1
+            device = m["name"].removeprefix(chr(92) * 2 + "." + chr(92))   # \\.\DISPLAY1 → DISPLAY1
+            name = f"{m['label']} ({device})" if m.get("label") else device   # 同じ機種が 2 台でも DISPLAY 番号で区別できる
+            label = f"{i}: {name}  {r - l}x{b - t}"
             cb.addItem(label + (tr("monitor.primary") if m["primary"] else ""), m["name"])
         if current and cb.findData(current) < 0:   # 今は繋がっていないモニタの設定も消さない
             cb.addItem(tr("monitor.disconnected", name=current), current)
@@ -582,6 +703,13 @@ class SettingsDialog(QDialog):
         self._refresh_ports()
 
     # ================= 全般 =================
+    def _reset_dnd_panel(self) -> None:
+        """D&D スペースを既定の大きさでランチャーの隣に戻す。OK を待たずにすぐ戻す（どこかへ行ってしまったとき用）。"""
+        self.lcfg["dnd_size"] = [0, 0]   # この画面の設定にも入れる（OK で古い位置に戻らないように）
+        self.lcfg["dnd_pos"] = None
+        self.dnd_reset.emit()
+        message(self, tr("gen.dnd_reset"), tr("gen.dnd_reset.done"))
+
     @staticmethod
     def _combo(prefix: str, keys: list[str], current: str) -> QComboBox:
         cb = QComboBox()
@@ -623,17 +751,67 @@ class SettingsDialog(QDialog):
         obs = self.cfg["obs"]
         self.host = QLineEdit(obs["host"])
         self.port = QSpinBox(minimum=1, maximum=65535, value=int(obs["port"]))
-        self.password = QLineEdit(obs["password"], echoMode=QLineEdit.Password)
+        self.password = QLineEdit(obs["password"], echoMode=QLineEdit.Password)   # 画面に映らないよう伏せ字が既定（開き直すと伏せ字に戻る）
+        reveal = QPushButton(tr("gen.obs_password.show"), checkable=True, autoDefault=False)
+        reveal.toggled.connect(lambda on: (self.password.setEchoMode(QLineEdit.Normal if on else QLineEdit.Password),
+                                           reveal.setText(tr("gen.obs_password.hide" if on else "gen.obs_password.show"))))
+        password_row = QWidget()
+        pw = QHBoxLayout(password_row)
+        pw.setContentsMargins(0, 0, 0, 0)
+        pw.addWidget(self.password, 1)
+        pw.addWidget(reveal)
         self.scene = QLineEdit(obs["target_scene"], placeholderText=tr("gen.scene.placeholder"))
+        self.dnd_on_launcher = WrapCheck(tr("gen.dnd_on_launcher.check"), self.lcfg["dnd_on_launcher"])
+        self.dnd_resize = self._combo("dnd_resize", config.DND_RESIZE, self.lcfg["dnd_resize"])
+        self.dnd_warn = QSpinBox(minimum=0, maximum=999, value=self.lcfg["dnd_warn_count"],
+                                 suffix=tr("gen.dnd_warn.suffix"), specialValueText=tr("gen.dnd_warn.off"))
+        self.dnd_warn.setToolTip(tr("gen.dnd_warn.tip"))
+        self.dnd_pick = WrapCheck(tr("gen.dnd_pick.check"), self.lcfg["dnd_pick"])
+        add = obs["add"]
+        self.add_visible = WrapCheck(tr("gen.add_visible.check"), add["visible"])
+        self.add_start = self._combo("add_start", config.ADD_MEDIA_START, add["media_start"])
+        self.add_volume = QDoubleSpinBox(minimum=-100.0, maximum=0.0, decimals=1, singleStep=1.0, suffix=" dB",
+                                         value=add["volume_db"], toolTip=tr("gen.add_volume.tip"))
+        self.add_mute = WrapCheck(tr("gen.add_mute.check"), add["mute"])
+        self.add_loop = WrapCheck(tr("gen.add_loop.check"), add["loop"])
+        self.add_loop_exts = QLineEdit(" ".join(e.lstrip(".") for e in add["loop_exts"]),
+                                       placeholderText=tr("gen.add_loop_exts.placeholder"), toolTip=tr("gen.dnd_ext.tip"),
+                                       enabled=add["loop"])
+        self.add_loop.box.toggled.connect(self.add_loop_exts.setEnabled)
+        self.add_restart = WrapCheck(tr("gen.add_restart.check"), add["restart"])
+        self.add_monitor = self._combo("add_monitor", config.ADD_MONITOR, add["monitor"])
+        self.add_fit = WrapCheck(tr("gen.add_fit.check"), add["fit"])
+        self.add_fit.setToolTip(tr("gen.add_fit.tip"))   # Image Resize Reader for OBS と両方オンにしない案内
+        self.add_name = self._combo("add_name", config.ADD_NAME, add["name"])
+        self.dnd_ext = {k: QLineEdit(" ".join(e.lstrip(".") for e in self.lcfg["dnd_exts"][k]),
+                                     placeholderText=" ".join(e.lstrip(".") for e in config.DEFAULT_EXTS[k]),
+                                     toolTip=tr("gen.dnd_ext.tip")) for k in config.DND_KINDS}
+        for edit in self.dnd_ext.values():   # 拡張子の指定は「種類を選ぶ」がオンのときだけ効く
+            edit.setEnabled(self.lcfg["dnd_pick"])
+            self.dnd_pick.box.toggled.connect(edit.setEnabled)
+        reset_btn = QPushButton(tr("gen.dnd_reset.btn"), autoDefault=False)
+        reset_btn.clicked.connect(self._reset_dnd_panel)
+        reset_row = QWidget()
+        rr = QHBoxLayout(reset_row)
+        rr.setContentsMargins(0, 0, 0, 0)
+        rr.addWidget(reset_btn)
+        rr.addStretch()
         groups = (   # 目的ごとに枠で分ける（1 列に 20 項目以上並ぶと探しにくいため）
             ("position", [("corner", self.corner), ("screen", self.screen), ("margin", self.margin),
-                          ("dnd_flush", self.dnd_flush), ("scale", self.scale)]),
+                          ("scale", self.scale)]),
+            ("dnd", [("dnd_flush", self.dnd_flush), ("dnd_on_launcher", self.dnd_on_launcher),
+                     ("dnd_warn", self.dnd_warn), ("dnd_pick", self.dnd_pick),
+                     *((f"dnd_ext_{k}", self.dnd_ext[k]) for k in config.DND_KINDS),
+                     ("dnd_resize", self.dnd_resize), ("dnd_reset", reset_row)]),
+            ("dnd_src", [("add_visible", self.add_visible), ("add_start", self.add_start), ("add_volume", self.add_volume),
+                         ("add_mute", self.add_mute), ("add_loop", self.add_loop), ("add_loop_exts", self.add_loop_exts), ("add_restart", self.add_restart),
+                         ("add_monitor", self.add_monitor), ("add_fit", self.add_fit), ("add_name", self.add_name)]),
             ("display", [("collapse", self.collapse), ("mini_icon", self.mini_icon), ("layout", self.layout_mode),
                          ("group_rows", self.group_rows), ("group_cols", self.group_cols), ("max_cols", self.max_cols),
                          ("max_rows", self.max_rows), ("wheel_rotate", self.wheel_rotate), ("keep_rot", self.keep_rot),
                          ("anim", self.anim)]),
             ("startup", [("show_seq", self.show_seq), ("after_seq", self.after_seq), ("startup", self.startup)]),
-            ("obs", [("obs_host", self.host), ("obs_port", self.port), ("obs_password", self.password), ("scene", self.scene)]),
+            ("obs", [("obs_host", self.host), ("obs_port", self.port), ("obs_password", password_row), ("scene", self.scene)]),
         )
         v = QVBoxLayout(w)
         labels = []
@@ -763,6 +941,9 @@ class SettingsDialog(QDialog):
         self.lcfg["apps"] = [self._row_app(r) for r in range(self.table.rowCount())]
         self.lcfg.update(corner=self.corner.currentData(), screen=self.screen.value(), margin=self.margin.value(),
                          dnd_flush=self.dnd_flush.isChecked(), collapse=self.collapse.currentData(),
+                         dnd_on_launcher=self.dnd_on_launcher.isChecked(), dnd_resize=self.dnd_resize.currentData(), dnd_warn_count=self.dnd_warn.value(),
+                         dnd_pick=self.dnd_pick.isChecked(),
+                         dnd_exts={k: config.parse_exts(self.dnd_ext[k].text()) for k in config.DND_KINDS},
                          mini_icon=self.mini_icon.currentData() or "",
                          layout=self.layout_mode.currentData(),
                          max_cols=self.max_cols.value(), max_rows=self.max_rows.value(),
@@ -775,7 +956,13 @@ class SettingsDialog(QDialog):
                         color_mode=self.color_mode.currentData(), colors=dict(self.colors),
                         animation=self.anim.currentData(), debug=self.debug_btn.isChecked())
         self.cfg["obs"].update(host=self.host.text().strip(), port=self.port.value(),
-                               password=self.password.text(), target_scene=self.scene.text().strip())
+                               password=self.password.text(), target_scene=self.scene.text().strip(),
+                               add={"visible": self.add_visible.isChecked(), "media_start": self.add_start.currentData(),
+                                    "volume_db": self.add_volume.value(), "mute": self.add_mute.isChecked(),
+                                    "loop": self.add_loop.isChecked(), "loop_exts": config.parse_exts(self.add_loop_exts.text()),
+                                    "restart": self.add_restart.isChecked(),
+                                    "monitor": self.add_monitor.currentData(), "fit": self.add_fit.isChecked(),
+                                    "name": self.add_name.currentData()})
         self.cfg["ports"] = [{"port": self.ports.item(r, 0).text(), "memo": self.ports.item(r, 1).text(),
                               "process": self.ports.item(r, 2).text().strip()}
                              for r in range(self.ports.rowCount())
@@ -789,11 +976,337 @@ class SettingsDialog(QDialog):
 
     def accept(self):
         self._collect()
+        if not self._ar_apply():   # 自動起動の変更に問題があれば閉じない
+            return
         try:
             winproc.set_startup(self.startup.isChecked())
         except OSError as e:
             message(self, tr("gen.startup"), tr("gen.startup_failed", e=e), warn=True)
         super().accept()
+
+    # ================= 自動起動（Windows のスタートアップ + 起動シーケンス） =================
+    def _autorun_tab(self) -> QWidget:
+        """上に Windows のスタートアップ項目（ユーザー分は編集できる）、下に起動シーケンスを灰色で起動順に並べる。
+
+        Windows の登録は、このタブを初めて開いたときに読む。変更は OK を押したときにまとめて反映する（キャンセルなら何もしない）。
+        """
+        w = QWidget()
+        self._ar_loaded = False
+        self._ar_win: list[dict] = []   # Windows の項目（orig = 読み込んだときの内容。新しく足した行は None）
+        self._ar_removed: list[tuple[int, dict]] = []   # 消した行（元に戻す用）
+        self._ar_rowmap: list[int | None] = []   # 表の行 → self._ar_win の番号（見出し行・シーケンス行は None）
+
+        # バックアップの案内はいちばん上に（変える前に目に入るように）
+        g = QGroupBox(tr("ar.backup"))
+        gv = QVBoxLayout(g)
+        gv.addWidget(QLabel(tr("ar.backup.hint"), wordWrap=True))
+        row = QHBoxLayout()
+        for key, slot in (("ar.copy_list", self._ar_copy),
+                          ("ar.restore_point", lambda: self._ar_open_tool("SystemPropertiesProtection.exe")),
+                          ("ar.regedit", lambda: self._ar_open_tool("regedit.exe"))):
+            b = QPushButton(tr(key), autoDefault=False)
+            b.clicked.connect(slot)
+            row.addWidget(b)
+        row.addStretch()
+        gv.addLayout(row)
+        gv.addWidget(_hint(tr("ar.regedit.hint") + "\n" + tr("ar.auto_backup", path=r"%APPDATA%\CBApps\DDLauncher\startup_backups")))   # ユーザー名を含めない
+
+        t = self.ar_table = QTableWidget(0, len(AR_COLS))
+        _setup_columns(t, AR_COLS, [], "arcol", tips=True)
+        t.horizontalHeader().setStretchLastSection(True)
+        t.setAlternatingRowColors(True)   # 1 行おきに色を変えて、横に長い行を追いやすく
+        t.setSelectionBehavior(QAbstractItemView.SelectRows)
+        t.setSelectionMode(QAbstractItemView.SingleSelection)
+        t.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+        t.verticalHeader().setVisible(False)
+        t.itemChanged.connect(self._ar_changed)
+        t.setContextMenuPolicy(Qt.CustomContextMenu)   # 右クリック: 場所を開く / プロパティ
+        t.customContextMenuRequested.connect(self._ar_menu)
+
+        btns = QHBoxLayout()
+        self.ar_undo_btn = QPushButton(tr("btn.undo"), enabled=False, autoDefault=False)
+        self.ar_undo_btn.clicked.connect(self._ar_undo)
+        QShortcut(QKeySequence.Undo, t, self._ar_undo)
+        for text, slot in ((tr("btn.add"), self._ar_add), (tr("btn.remove"), self._ar_remove)):
+            b = QPushButton(text, autoDefault=False)
+            b.clicked.connect(slot)
+            btns.addWidget(b)
+        btns.addWidget(self.ar_undo_btn)
+        btns.addStretch()
+
+        lay = QVBoxLayout(w)
+        lay.addWidget(g)
+        lay.addWidget(t, 1)
+        lay.addLayout(btns)
+        lay.addWidget(_hint(tr("ar.hint")))
+        return w
+
+    def _ar_shown(self, index: int) -> None:
+        if index != self.autorun_tab_index:
+            return
+        if not self._ar_loaded:
+            self._ar_loaded = True
+            try:
+                self._ar_win = [dict(it, orig=dict(it)) for it in startup_items.list_items()]
+            except OSError as e:
+                message(self, tr("set.tab.autorun"), tr("dbg.failed", e=e), warn=True)
+        self._ar_render()   # シーケンスは「ランチャーに並べるアプリ」タブの今の内容で作り直す
+
+    def _ar_seq(self) -> list[tuple[str, str, str, str]]:
+        """起動シーケンスで起動するアプリ: [(名前, 起動タイミング, コマンド, パス)]。起動する秒の順。"""
+        apps = [self._row_app(r) for r in range(self.table.rowCount())]
+        out = []
+        for i, _delay, sec in sequencer.timeline(apps):
+            a = apps[i]
+            out.append((a.get("name") or a["path"], tr("ar.when.seq", t=fmt_sec(sec)),
+                        startup_items.join_command(a["path"], a.get("args", "")), a["path"]))
+        return out
+
+    def _ar_cell(self, text: str, editable: bool = False, grey: bool = False, tip: str = "") -> QTableWidgetItem:
+        it = QTableWidgetItem(text)
+        flags = Qt.ItemIsSelectable if not grey else Qt.NoItemFlags
+        if not grey:
+            flags |= Qt.ItemIsEnabled   # Enabled を外すと灰色になり、選択も編集もできない
+        if editable:
+            flags |= Qt.ItemIsEditable
+        it.setFlags(flags)
+        it.setToolTip(tip or text)
+        return it
+
+    def _ar_section(self, r: int, text: str) -> None:
+        it = QTableWidgetItem(text)
+        it.setFlags(Qt.ItemIsEnabled)
+        f = it.font()
+        f.setBold(True)
+        it.setFont(f)
+        self.ar_table.setItem(r, 0, it)
+        self.ar_table.setSpan(r, 0, 1, len(AR_COLS))
+
+    def _ar_render(self) -> None:
+        t = self.ar_table
+        seq = self._ar_seq()
+        t.blockSignals(True)
+        t.clearSpans()
+        t.setRowCount(0)
+        t.setRowCount(len(self._ar_win) + len(seq) + 2)
+        self._ar_rowmap = []
+        self._ar_seqpath: dict[int, str] = {}   # シーケンス行 → アプリのパス（右クリックメニュー用）
+        r = 0
+        self._ar_section(r, tr("ar.sec.windows"))
+        self._ar_rowmap.append(None)
+        for i, it in enumerate(self._ar_win):
+            r += 1
+            grey = not it["editable"]
+            tip = tr("ar.tip.self") if it.get("self") else tr("ar.tip.admin") if grey else ""
+            check = self._ar_cell("", grey=grey, tip=tip)
+            if not grey:
+                check.setFlags(check.flags() | Qt.ItemIsUserCheckable)
+            check.setCheckState(Qt.Checked if it["enabled"] else Qt.Unchecked)
+            cmd_editable = not grey and (it["source"] == "hkcu_run" or startup_items.editable_folder_command(it))
+            cells = [check, self._ar_cell(it["name"], editable=not grey, grey=grey, tip=tip),
+                     self._ar_cell(tr("ar.when.logon"), grey=grey, tip=tip),
+                     self._ar_cell(tr(f"ar.src.{it['source']}"), grey=grey, tip=tip),
+                     self._ar_cell(it["command"], editable=cmd_editable, grey=grey, tip=tip or it["command"])]
+            for c, cell in enumerate(cells):
+                t.setItem(r, c, cell)
+            self._ar_rowmap.append(i)
+            self._ar_mark(r, it)
+        r += 1
+        self._ar_section(r, tr("ar.sec.seq", tab=tr("set.tab.apps")))
+        self._ar_rowmap.append(None)
+        tip = tr("ar.tip.seq", tab=tr("set.tab.apps"))
+        for name, when, command, path in seq:   # 灰色・編集不可。直すときは「ランチャーに並べるアプリ」タブで
+            r += 1
+            self._ar_seqpath[r] = path
+            check = self._ar_cell("", grey=True, tip=tip)
+            check.setCheckState(Qt.Checked)
+            for c, cell in enumerate([check, self._ar_cell(name, grey=True, tip=tip), self._ar_cell(when, grey=True, tip=tip),
+                                      self._ar_cell(tr("ar.src.seq"), grey=True, tip=tip),
+                                      self._ar_cell(command, grey=True, tip=tip)]):
+                t.setItem(r, c, cell)
+            self._ar_rowmap.append(None)
+        t.blockSignals(False)
+        self.ar_undo_btn.setEnabled(bool(self._ar_removed))
+
+    def _ar_changed(self, item: QTableWidgetItem) -> None:
+        i = self._ar_rowmap[item.row()] if item.row() < len(self._ar_rowmap) else None
+        if i is None:
+            return
+        it = self._ar_win[i]
+        if item.column() == 0:
+            it["enabled"] = item.checkState() == Qt.Checked
+        elif item.column() == AR_NAME:
+            it["name"] = item.text().strip()
+        elif item.column() == AR_COMMAND:
+            it["command"] = item.text().strip()
+        self.ar_table.blockSignals(True)   # 色を変えるだけで、もう一度 itemChanged が来ないように
+        self._ar_mark(item.row(), it)
+        self.ar_table.blockSignals(False)
+
+    @staticmethod
+    def _ar_pending(it: dict) -> bool:
+        """まだ Windows に反映していない変更があるか（新しく足した行も含む）。"""
+        return it["orig"] is None or any(it[k] != it["orig"][k] for k in ("name", "command", "enabled"))
+
+    def _ar_mark(self, r: int, it: dict) -> None:
+        """反映前の変更がある行は背景に色を付ける（OK で反映するまで目に見えるように）。"""
+        if self._ar_pending(it):
+            c = QColor("#e8a33d")   # 橙。明るい / 暗いテーマのどちらでも文字が読める薄さにする
+            c.setAlpha(90)
+            brush = QBrush(c)
+        else:
+            brush = QBrush()   # 元に戻したら色も消す（1 行おきの色に戻る）
+        for col in range(len(AR_COLS)):
+            cell = self.ar_table.item(r, col)
+            if cell is not None:
+                cell.setBackground(brush)
+
+    def _ar_menu(self, pos) -> None:
+        """右クリックメニュー: ファイルの場所を開く / スタートアップフォルダで表示 / プロパティ。"""
+        r = self.ar_table.rowAt(pos.y())
+        i = self._ar_rowmap[r] if 0 <= r < len(self._ar_rowmap) else None
+        if i is not None:
+            it = self._ar_win[i]
+            target = startup_items.resolve_target(it["command"])
+            entry = it.get("file", "")   # スタートアップフォルダの項目（ショートカットなど）
+        elif r in self._ar_seqpath:
+            target = startup_items.resolve_target(self._ar_seqpath[r])
+            entry = ""
+        else:
+            return   # 見出し行
+        if r >= 0 and self.ar_table.item(r, AR_NAME).flags() & Qt.ItemIsEnabled:
+            self.ar_table.selectRow(r)
+        menu = QMenu(self)
+        a = menu.addAction(tr("ar.menu.reveal"), lambda: startup_items.reveal(target))
+        a.setEnabled(bool(target))
+        if entry:
+            menu.addAction(tr("ar.menu.folder"), lambda: startup_items.reveal(entry))
+        menu.addSeparator()
+        props = entry or target   # ショートカットはショートカットのプロパティ（リンク先も変えられる）
+        a = menu.addAction(tr("ar.menu.props"), lambda: startup_items.show_properties(props, int(self.winId())))
+        a.setEnabled(bool(props))
+        if not target:
+            menu.addSeparator()
+            menu.addAction(tr("ar.menu.not_found")).setEnabled(False)
+        menu.exec(self.ar_table.viewport().mapToGlobal(pos))
+
+    def _ar_selected(self) -> int | None:
+        r = self.ar_table.currentRow()
+        i = self._ar_rowmap[r] if 0 <= r < len(self._ar_rowmap) else None
+        if i is None or not self._ar_win[i]["editable"]:
+            message(self, tr("set.tab.autorun"), tr("apps.select_row"))
+            return None
+        return i
+
+    def _ar_add(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, tr("dlg.pick_app"), "", tr("dlg.pick_app_filter"))
+        if not path:
+            return
+        path = path.replace("/", "\\")
+        taken = {x["name"].lower() for x in self._ar_win if x["source"] == "hkcu_run"}
+        name = base = os.path.splitext(os.path.basename(path))[0]
+        n = 1
+        while name.lower() in taken:
+            n += 1
+            name = f"{base} ({n})"
+        new = dict(source="hkcu_run", name=name, command=startup_items.join_command(path, ""), enabled=True,
+                   editable=True, self=False, file="", ext="", reg_kind=None, orig=None)
+        pos = max((k + 1 for k, x in enumerate(self._ar_win) if x["source"] in ("hkcu_run", "user_folder")), default=0)
+        self._ar_win.insert(pos, new)   # 編集できる項目のまとまりの最後に入れる
+        self._ar_render()
+        self.ar_table.selectRow(self._ar_rowmap.index(pos))
+
+    def _ar_remove(self) -> None:
+        """確認なしで表から消す（OK を押すまで反映しない）。「元に戻す」（Ctrl+Z）で戻せる。"""
+        i = self._ar_selected()
+        if i is not None:
+            self._ar_removed.append((i, self._ar_win.pop(i)))
+            self._ar_render()
+
+    def _ar_undo(self) -> None:
+        if self._ar_removed:
+            i, it = self._ar_removed.pop()
+            i = min(i, len(self._ar_win))
+            self._ar_win.insert(i, it)
+            self._ar_render()
+            self.ar_table.selectRow(self._ar_rowmap.index(i))
+
+    def _ar_copy(self) -> None:
+        """今の一覧を文字にしてクリップボードへ。メモ帳などに貼って残してもらう。"""
+        if not self._ar_loaded:
+            self._ar_shown(self.autorun_tab_index)
+        lines = [tr("ar.copy_head", date=about.format_date(datetime.date.today(), i18n.current()))]
+        for it in self._ar_win:
+            lines.append("\t".join(["ON" if it["enabled"] else "OFF", it["name"], tr("ar.when.logon"),
+                                    tr(f"ar.src.{it['source']}"), it["command"]]))
+        for name, when, command, _path in self._ar_seq():
+            lines.append("\t".join(["ON", name, when, tr("ar.src.seq"), command]))
+        QGuiApplication.clipboard().setText("\r\n".join(lines))
+        message(self, tr("ar.copy_list"), tr("ar.copied"))
+
+    def _ar_open_tool(self, exe: str) -> None:
+        try:
+            os.startfile(exe)   # どちらも Windows 標準。管理者の確認（UAC）は Windows が出す
+        except OSError:
+            pass   # UAC でキャンセルしたときなど
+
+    def _ar_problems(self) -> list[str]:
+        out = []
+        seen = {"hkcu_run": set(), "user_folder": set()}
+        for it in self._ar_win:
+            if it["source"] in seen:
+                key = it["name"].lower()
+                if it["editable"] and (not it["name"] or not it["command"]):
+                    out.append(tr("ar.err.empty", name=it["name"] or "?"))
+                elif key in seen[it["source"]]:
+                    out.append(tr("ar.err.dup", name=it["name"]))
+                elif it["source"] == "user_folder" and BAD_FILENAME & set(it["name"]):
+                    out.append(tr("ar.err.badname", name=it["name"]))
+                seen[it["source"]].add(key)
+        return out
+
+    def _ar_apply(self) -> bool:
+        """自動起動タブの変更を Windows に反映する。閉じてよければ True。"""
+        if not self._ar_loaded:
+            return True
+        deleted = [it["orig"] for _, it in self._ar_removed if it["orig"] is not None]
+        changed = [it for it in self._ar_win if it["editable"] and (it["orig"] is None or any(
+            it[k] != it["orig"][k] for k in ("name", "command", "enabled")))]
+        if not deleted and not changed:
+            return True
+        problems = self._ar_problems()
+        if problems:
+            self.tabs.setCurrentIndex(self.autorun_tab_index)
+            message(self, tr("set.tab.autorun"), "\n".join(problems), warn=True)
+            return False
+        try:
+            startup_items.backup()   # 変える前の登録を残す。残せなければ何も変えない
+        except OSError as e:
+            self.tabs.setCurrentIndex(self.autorun_tab_index)
+            message(self, tr("set.tab.autorun"), tr("ar.backup_failed", e=e), warn=True)
+            return False
+        failed = []
+        for orig in deleted:   # 先に消す（消した名前を別の行で使えるように）
+            try:
+                startup_items.remove(orig)
+            except OSError as e:
+                failed.append(f"{orig['name']}: {e}")
+        for it in changed:
+            try:
+                if it["orig"] is None:
+                    startup_items.add_run(it["name"], it["command"])
+                    cur = dict(it, file="")
+                else:
+                    cur = it["orig"]
+                    if it["name"] != cur["name"] or it["command"] != cur["command"]:
+                        cur = startup_items.update(cur, it["name"], it["command"])
+                if it["enabled"] != (True if it["orig"] is None else it["orig"]["enabled"]):
+                    startup_items.set_enabled(cur, it["enabled"])
+            except (OSError, subprocess.SubprocessError) as e:
+                failed.append(f"{it['name']}: {e}")
+        if failed:
+            message(self, tr("set.tab.autorun"), tr("ar.apply_failed", items="\n".join(failed)), warn=True)
+        return True
 
     # ================= サウンドデバイス =================
     def _sound_tab(self) -> QWidget:
@@ -1009,10 +1522,25 @@ class SettingsDialog(QDialog):
         scroll.setWidget(w)
         return scroll
 
+    def _show_addresses(self, on: bool) -> None:
+        """ファイルの場所・URL・OBS の接続先を見せるか隠すか（配信に映る事故を防ぐ）。中身はそのまま、見せ方だけ変える。"""
+        for t in (self.table, self.ar_table):
+            t.viewport().update()   # 伏せ字 ⇔ 元の文字の描き直し（MaskDelegate がスイッチの状態を見る）
+        self.host.setEchoMode(QLineEdit.Normal if on else QLineEdit.Password)
+        for lb, text in self._addr_labels:
+            lb.setText(text if on else MASK)
+
+    def _address_locked(self) -> None:
+        """隠している間に編集しようとしたら、左下のスイッチを指して案内する。"""
+        self.addr_btn.flash()
+        QToolTip.showText(self.addr_btn.mapToGlobal(QPoint(0, -self.addr_btn.height() - 8)),
+                          tr("addr.locked"), self.addr_btn)
+
     def _show_debug(self, on: bool) -> None:
         self.debug_btn.setText("ON" if on else "OFF")
         self.debug_box.setVisible(on)
         self.tabs.setTabVisible(self.sound_tab_index, on)
+        self.tabs.setTabVisible(self.autorun_tab_index, on)
         for w in (self.max_cols, self.max_rows):   # LINEAR は調整中なので Debug Mode のときだけ見せる
             self._forms["display"].setRowVisible(w, on)
         self.layout_mode.view().setRowHidden(config.LAYOUTS.index("linear"), not on)
@@ -1028,6 +1556,7 @@ class SettingsDialog(QDialog):
         for key, path in rows:
             row = QHBoxLayout()
             lb = QLabel(path, wordWrap=True, textInteractionFlags=Qt.TextSelectableByMouse)
+            self._addr_labels.append((lb, path))
             row.addWidget(lb, 1)
             b = QPushButton(tr("dbg.open"))
             b.clicked.connect(lambda _=False, p=path: self._open_folder(p))
@@ -1131,6 +1660,8 @@ class SettingsDialog(QDialog):
         legacy = tr("dbg.uninstall.legacy", path=config.LEGACY_DIR) if about.legacy_exists() else ""
         text = tr("dbg.uninstall.body", app=about.app_location(), config=config.CONFIG_DIR,
                   legacy=legacy, parent=os.path.dirname(config.CONFIG_DIR))
-        v.addWidget(QLabel(text, wordWrap=True, textInteractionFlags=Qt.TextSelectableByMouse))
+        lb = QLabel(text, wordWrap=True, textInteractionFlags=Qt.TextSelectableByMouse)
+        self._addr_labels.append((lb, text))
+        v.addWidget(lb)
         v.addWidget(_hint(tr("dbg.uninstall.tool")))
         return g

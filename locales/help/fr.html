@@ -5,6 +5,7 @@
 </style>
 
 <h2>Lire l'affichage</h2>
+<p><img src="img/status.png" width="480"></p>
 <ul>
  <li>Cadre / voyant <b>gris</b> : arrêté / non configuré</li>
  <li><b>Vert</b> : en cours (droits normaux)</li>
@@ -42,6 +43,7 @@ Clic droit sur une zone vide du lanceur pour le menu (position, séquence, param
 </ul>
 
 <h2>Pourquoi le glisser-déposer ne fonctionne plus</h2>
+<p><img src="img/dnd_uipi.png" width="480"></p>
 <p>Windows dispose d'un mécanisme appelé UIPI (User Interface Privilege Isolation) qui
 <b>bloque les messages de fenêtre d'un processus aux droits faibles vers un processus aux droits élevés</b>.
 L'Explorateur tourne avec les droits normaux et OBS en administrateur : le dépôt (OLE D&amp;D / WM_DROPFILES)
@@ -52,6 +54,7 @@ Les connexions réseau ne sont pas concernées par l'UIPI : elles atteignent OBS
 <p>Remarque : si vous lancez le lanceur lui-même en administrateur, le D&amp;D ne marche pas pour la même raison (l'en-tête affiche ⚠ADMIN).</p>
 
 <h2>Capture de jeu ou capture de fenêtre</h2>
+<p><img src="img/capture.png" width="480"></p>
 <table border="1" cellspacing="0" cellpadding="4">
  <tr><th></th><th>Capture de jeu</th><th>Capture de fenêtre</th></tr>
  <tr><td>Fonctionnement</td>
@@ -92,6 +95,7 @@ Les connexions réseau ne sont pas concernées par l'UIPI : elles atteignent OBS
 </ul>
 
 <h2>Séquence de lancement</h2>
+<p><img src="img/sequence.png" width="480"></p>
 <ul>
  <li>Lance les applis dans l'ordre des paramètres, chacune « délai en secondes après le lancement de la précédente ». Une appli déjà lancée ne l'est pas deux fois.</li>
  <li>Placez les DAW et VB-Audio (VoiceMeeter, etc.) en dernier avec un délai plus long pour éviter qu'ils se disputent les périphériques audio.</li>
@@ -101,6 +105,7 @@ Les connexions réseau ne sont pas concernées par l'UIPI : elles atteignent OBS
 </ul>
 
 <h2>Choisir l'écran</h2>
+<p><img src="img/monitor.png" width="480"></p>
 <ul>
  <li>Si vous en choisissez un dans la colonne « Écran de destination », le lanceur attend jusqu'à 30 secondes que la fenêtre apparaisse et la déplace sur cet écran (position relative et état réduit / agrandi conservés).</li>
  <li><b>Les applis lancées en administrateur ne peuvent pas être déplacées</b> (l'UIPI empêche le lanceur aux droits normaux de les piloter).
@@ -109,6 +114,7 @@ Les connexions réseau ne sont pas concernées par l'UIPI : elles atteignent OBS
 </ul>
 
 <h2>Ports</h2>
+<p><img src="img/ports.png" width="480"></p>
 <ul>
  <li>Enregistrez les ports utilisés par OBS WebSocket (4455), les lecteurs de chat et les outils d'intégration pour vérifier leur état.</li>
  <li><b>Libre</b> (gris) / <b>Utilisé</b> (vert : par le processus attendu) / <b>Conflit</b> (rouge : par un processus inattendu, ou enregistré deux fois).</li>
@@ -118,5 +124,6 @@ Les connexions réseau ne sont pas concernées par l'UIPI : elles atteignent OBS
 </ul>
 
 <h2>Réglages côté OBS</h2>
+<p><img src="img/obs_websocket.png" width="480"></p>
 <p>Dans OBS, activez-le via « Outils » → « Paramètres du serveur WebSocket », puis saisissez le port et le mot de passe
 dans les paramètres de DDLauncher, onglet « Général / OBS ».</p>

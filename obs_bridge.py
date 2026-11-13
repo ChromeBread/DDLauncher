@@ -11,23 +11,55 @@ import time
 import obsws_python as obs
 from PySide6.QtCore import QObject, Signal
 
+from config import DEFAULT_EXTS
 from i18n import tr
 
-IMAGE_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tga", ".psd"}
+IMAGE_EXT = set(DEFAULT_EXTS["image"])
 # OBS 未起動のあいだ 2 秒ごとの接続失敗をスタックトレース付きで出し続けるため黙らせる（失敗は呼び出し側で扱う）
 logging.getLogger("obsws_python").setLevel(logging.CRITICAL)
-VIDEO_EXT = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".flv", ".ts", ".m4v"}
-AUDIO_EXT = {".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".opus"}
+VIDEO_EXT = set(DEFAULT_EXTS["video"])
+AUDIO_EXT = set(DEFAULT_EXTS["audio"])
+SCAN_LIMIT, FILE_LIMIT = 20000, 1000   # フォルダの中を見る上限（固まらないように）/ 読み込む候補の上限
 
 
-def source_spec(path: str) -> tuple[str, dict] | None:
-    """ファイル → (inputKind, inputSettings)。非対応なら None。"""
+def file_kind(path: str, exts: dict | None = None) -> str | None:
+    """"image" / "video" / "audio" / None。exts = {種類: [拡張子]}（None なら既定の拡張子）。"""
     ext = os.path.splitext(path)[1].lower()
-    if ext in IMAGE_EXT:
+    return next((kind for kind, allowed in (exts or DEFAULT_EXTS).items() if ext in allowed), None)
+
+
+def source_spec(path: str, exts: dict | None = None) -> tuple[str, dict] | None:
+    """ファイル → (inputKind, inputSettings)。非対応なら None。"""
+    kind = file_kind(path, exts)
+    if kind == "image":
         return "image_source", {"file": path}
-    if ext in VIDEO_EXT or ext in AUDIO_EXT:
+    if kind in ("video", "audio"):
         return "ffmpeg_source", {"local_file": path, "is_local_file": True, "looping": False}
     return None
+
+
+def collect_files(paths: list[str], exts: dict | None = None) -> tuple[list[str], bool]:
+    """ドロップされたファイルとフォルダ（中のサブフォルダも）から、読み込めるファイルを集める。
+
+    (ファイル, 上限で打ち切ったか)。大きなフォルダでも固まらないよう、見る数と集める数に上限を設ける。
+    """
+    out, scanned = [], 0
+    for p in paths:
+        if os.path.isdir(p):
+            for root, dirs, files in os.walk(p):
+                dirs.sort()
+                for f in sorted(files):
+                    scanned += 1
+                    fp = os.path.join(root, f)
+                    if file_kind(fp, exts):
+                        out.append(fp)
+                    if len(out) >= FILE_LIMIT or scanned >= SCAN_LIMIT:
+                        return out, True
+        elif file_kind(p, exts):
+            out.append(p)
+            if len(out) >= FILE_LIMIT:
+                return out, True
+    return out, False
 
 
 def unique_name(base: str, existing: set[str]) -> str:
@@ -38,6 +70,34 @@ def unique_name(base: str, existing: set[str]) -> str:
     return name
 
 
+MONITOR_TYPES = {"monitor": "OBS_MONITORING_TYPE_MONITOR_ONLY", "both": "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT"}
+
+
+def apply_media_options(client, name: str, opt: dict, first: bool) -> None:
+    """映像 / 音のソースを作った直後に、再生 / 停止・音量・ミュート・モニタリングを設定する。"""
+    start = opt.get("media_start", "play")
+    if start == "stop" or (start == "first" and not first):
+        client.trigger_media_input_action(name, "OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP")
+    if opt.get("volume_db", 0.0):
+        client.set_input_volume(name, vol_db=float(opt["volume_db"]))
+    if opt.get("mute"):
+        client.set_input_mute(name, True)
+    if opt.get("monitor") in MONITOR_TYPES:
+        client.set_input_audio_monitor_type(name, MONITOR_TYPES[opt["monitor"]])
+
+
+def loops(path: str, opt: dict) -> bool:
+    """ループするか。loop_exts が空なら映像 / 音のすべて、指定があればその拡張子だけ。"""
+    allowed = opt.get("loop_exts") or []
+    return bool(opt.get("loop")) and (not allowed or os.path.splitext(path)[1].lower() in allowed)
+
+
+def fit_transform(width: int, height: int) -> dict:
+    """画面（OBS のキャンバス）いっぱいに、縦横比を保って収める配置。"""
+    return {"positionX": 0.0, "positionY": 0.0, "alignment": 5, "rotation": 0.0,   # 5 = 左上
+            "boundsType": "OBS_BOUNDS_SCALE_INNER", "boundsAlignment": 0, "boundsWidth": float(width), "boundsHeight": float(height)}
+
+
 class ObsBridge(QObject):
     finished = Signal(bool, str)  # (成功, メッセージ) — ワーカースレッドから emit、Qt がメインスレッドへ配送
 
@@ -45,11 +105,11 @@ class ObsBridge(QObject):
         super().__init__(parent)
         self.cfg = obs_cfg
 
-    def add_files(self, paths: list[str]) -> None:
+    def add_files(self, paths: list[str], exts: dict | None = None) -> None:
         # 接続待ちで UI を固めないよう別スレッドで実行
-        threading.Thread(target=self._worker, args=(list(paths),), daemon=True).start()
+        threading.Thread(target=self._worker, args=(list(paths), exts), daemon=True).start()
 
-    def _worker(self, paths: list[str]) -> None:
+    def _worker(self, paths: list[str], exts: dict | None = None) -> None:
         try:
             client = obs.ReqClient(host=self.cfg["host"], port=int(self.cfg["port"]),
                                    password=self.cfg["password"], timeout=3)
@@ -61,15 +121,27 @@ class ObsBridge(QObject):
                 client.get_current_program_scene().current_program_scene_name
             existing = {i["inputName"] for i in client.get_input_list().inputs}
             added = 0
+            opt = self.cfg.get("add") or {}
+            canvas = client.get_video_settings() if opt.get("fit") else None
+            first_media = True
             for p in paths:
-                spec = source_spec(p)
+                spec = source_spec(p, exts)
                 if not spec:
                     continue
                 kind, settings = spec
-                name = unique_name(os.path.splitext(os.path.basename(p))[0], existing)
-                client.create_input(scene, name, kind, settings, True)
+                media = kind == "ffmpeg_source"
+                if media:
+                    settings.update(looping=loops(p, opt), restart_on_activate=bool(opt.get("restart", True)))
+                base = os.path.basename(p) if opt.get("name") == "name" else os.path.splitext(os.path.basename(p))[0]
+                name = unique_name(base, existing)
+                item = client.create_input(scene, name, kind, settings, bool(opt.get("visible", True)))
                 existing.add(name)
                 added += 1
+                if media:
+                    apply_media_options(client, name, opt, first_media)
+                    first_media = False
+                if canvas and file_kind(p, exts) != "audio":   # 音だけのファイルは画面に出ないので合わせない
+                    client.set_scene_item_transform(scene, item.scene_item_id, fit_transform(canvas.base_width, canvas.base_height))
             self.finished.emit(True, tr("obs.added", scene=scene, n=added))
         except Exception as e:
             self.finished.emit(False, tr("obs.error", e=e))

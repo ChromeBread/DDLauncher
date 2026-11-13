@@ -4,9 +4,12 @@
 
 Launcher ringan untuk streamer yang selalu standby di pojok layar (Windows).
 
+> [!TIP]
+> **Tambahkan source ke OBS dengan drag & drop file, bahkan saat OBS berjalan sebagai administrator.**
+> Biasanya, kalau OBS berjalan sebagai administrator, Windows memblokir drag & drop dari Explorer. DDLauncher menerima file yang kamu jatuhkan ke launcher lalu meneruskannya ke OBS lewat obs-websocket, jadi pembatasan ini tidak berlaku.
+
 - Menjalankan OBS dan aplikasi lain secara otomatis sesuai urutan yang ditentukan, dengan jeda di antaranya. Aplikasi yang sudah berjalan tidak dijalankan dua kali.
 - Warna lampu menunjukkan apakah setiap aplikasi sedang berjalan, dan apakah berjalan sebagai administrator.
-- **Tambahkan source ke OBS dengan drag & drop file, bahkan saat OBS berjalan sebagai administrator** (lewat obs-websocket).
 - Biasanya hanya menampilkan satu ikon kecil di pojok, dan baru terbuka saat kursor diarahkan ke sana.
 
 <p>
@@ -27,33 +30,17 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 | Versi | File | Cocok untuk |
 |---|---|---|
-| Installer | `DDLauncher-0.1.0-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
-| Standalone | `DDLauncher-0.1.0-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
+| Installer | `DDLauncher-0.2.0-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
+| Standalone | `DDLauncher-0.2.0-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
 
 - Standalone: ekstrak di mana saja lalu jalankan `DDLauncher.exe`.
-- Exe-nya tidak bertanda tangan, jadi saat pertama dijalankan Windows SmartScreen ("Windows melindungi PC Anda") atau antivirus bisa memberi peringatan. Klik "Info selengkapnya" → "Tetap jalankan". Jika ingin memeriksa dulu, jalankan dari kode sumber seperti di bawah.
+- Exe-nya tidak bertanda tangan, jadi saat pertama dijalankan Windows SmartScreen ("Windows melindungi PC Anda") atau antivirus bisa memberi peringatan. Klik "Info selengkapnya" → "Tetap jalankan". Jika ingin memeriksa dulu, jalankan dari kode sumber (lihat "Untuk developer" di bawah).
 - Kedua versi menyimpan pengaturan di `%APPDATA%\CBApps\DDLauncher\`.
 
-### Menjalankan dari kode sumber
-
-```powershell
-py -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\pythonw main.py
-```
-
-Untuk membuat versi folder (`dist\DDLauncher\`) dan installer (installer memerlukan Inno Setup 6):
-
-```powershell
-.venv\Scripts\pip install pyinstaller
-.venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
-```
-
-### Persiapan di OBS
+## Persiapan di OBS
 
 1. Di OBS, buka "Tools" → "WebSocket Server Settings" lalu aktifkan "Enable WebSocket server".
-2. Catat port (bawaan 4455) dan kata sandinya, lalu masukkan di launcher pada ⚙ → "Umum / OBS".
+2. Catat port dan kata sandinya, lalu masukkan di launcher pada ⚙ → "Umum / OBS".
 
 ## Cara pakai
 
@@ -92,9 +79,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 
 ### Mode D&D
 
-- Jatuhkan file gambar, video, atau audio ke launcher untuk menambahkannya sebagai source ke scene OBS yang dipilih (scene program saat ini jika dikosongkan).
+- Jatuhkan file gambar, video, atau audio ke ruang D&D (atau ke launcher) untuk menambahkannya sebagai source ke scene OBS yang dipilih (scene program saat ini jika dikosongkan). Menjatuhkan ke launcher bisa dimatikan di ⚙ → "Jatuhkan ke launcher". Jika kamu menjatuhkan banyak file sekaligus (bawaan: 5 atau lebih), launcher bertanya dulu sebelum menambahkannya; ubah jumlahnya di ⚙ → "Konfirmasi saat menjatuhkan banyak file". Aktifkan ⚙ → "Folder / file campuran" untuk menjatuhkan seluruh folder dan memilih jenis yang ditambahkan (gambar, video, audio), serta mengatur ekstensi file untuk tiap jenis. Di ⚙ → "Source yang ditambahkan lewat D&D" kamu bisa mengatur source baru: tampil atau tersembunyi, langsung diputar atau berhenti (atau hanya file pertama yang diputar), volume, bisu, ulangi, pemantauan audio, sesuaikan layar, dan nama source.
+  - "Sesuaikan layar" dan **Image Resize Reader for OBS**: jika kamu memakai Image Resize Reader, matikan "Sesuaikan layar". Source yang ditambahkan DDLauncher juga disesuaikan oleh Image Resize Reader, jadi jika keduanya aktif posisinya bisa bergeser atau terpotong.
 - Dalam mode D&D, launcher mengabaikan margin dan menempel ke tepi layar, agar file tidak jatuh ke celah dan masuk ke jendela lain. Matikan dengan ⚙ → "Posisi saat D&D".
-- Ruang D&D muncul tepat di samping launcher, menempel tetapi tidak menutupinya. Seret sudut bergaris (yang jauh dari launcher) untuk mengubah ukurannya, atau seret bagian lain untuk memindahkannya. Ukuran dan posisi diingat; bila dijatuhkan di atas launcher, ruang itu bergeser menempel ke sisi launcher yang terdekat. Klik kanan untuk mengembalikan ukuran atau menaruhnya kembali di samping launcher.
+- Ruang D&D muncul tepat di samping launcher, menempel tetapi tidak menutupinya. Seret salah satu sudut bergaris untuk mengubah ukurannya, atau seret bagian lain untuk memindahkannya (di ⚙ → "Ubah ukuran ruang D&D" kamu bisa mengubah ukuran dari sisi juga). Ukuran dan posisi diingat; bila dijatuhkan di atas launcher, ruang itu bergeser menempel ke sisi launcher yang terdekat. Klik kanan untuk mengembalikan ukuran atau menaruhnya kembali di samping launcher. Jika ruang D&D hilang, pakai "Kembalikan ruang D&D ke samping launcher (ukuran bawaan)" di ⚙.
 
 ### Cara membaca tampilan
 
@@ -108,9 +96,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
   - Jika "Gambar ikon" kosong, ikon exe yang dipakai, atau ikon situs bila path berupa URL. Isi "Gambar ikon" dengan alamat web untuk memakai ikon situs itu (atau gambarnya langsung, untuk alamat gambar).
   - Baris yang dihapus bisa dikembalikan dengan "Urungkan" (Ctrl+Z). Linimasa di bawah tabel menunjukkan berapa detik setelah mulai tiap aplikasi dijalankan.
   - "Pindah ke monitor" memindahkan jendela aplikasi ke monitor itu setelah dijalankan. Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan karena batasan Windows.
-- **Port**: daftarkan port yang dipakai untuk melihat apakah kosong, dipakai, atau bentrok (dipakai proses tak terduga, atau terdaftar dua kali). "Bebaskan" menutup proses yang memakai port itu (dengan konfirmasi). "Deteksi" menambahkan port yang dipakai aplikasi terdaftar (OBS dari pengaturan WebSocket-nya, aplikasi lain saat sedang berjalan). OneComme dan BouyomiChan juga dibaca dari pengaturannya sehingga tetap ditemukan walau tertutup; Yukarinette Connector NEO ditemukan saat sedang berjalan. Anda memilih port mana yang ditambahkan, dan akan diberi tahu bila OneComme mengirim ke port yang berbeda dari port BouyomiChan. Anda juga bisa mencatat apakah alamat IP PC ini statis atau dinamis; "Periksa" mengisinya hanya dengan melihat apakah koneksi kabel / Wi-Fi memakai DHCP. DDLauncher tidak pernah membaca alamat IP itu sendiri, dan reservasi DHCP di router tetap terlihat dinamis.
+- **Port**: daftarkan port yang dipakai untuk melihat apakah kosong, dipakai, atau bentrok (dipakai proses tak terduga, atau terdaftar dua kali). "Bebaskan" menutup proses yang memakai port itu (dengan konfirmasi). "Deteksi" menambahkan port yang dipakai aplikasi terdaftar (OBS dari pengaturan WebSocket-nya, aplikasi lain saat sedang berjalan). Sebagian penampil komentar dan aplikasi pembaca teks yang populer di kalangan streamer dibaca dari file pengaturannya, sehingga tetap ditemukan walau tertutup. Anda memilih port mana yang ditambahkan, dan akan diberi tahu bila dua aplikasi yang saling terhubung memakai port yang berbeda. Anda juga bisa mencatat apakah alamat IP PC ini statis atau dinamis; "Periksa" mengisinya hanya dengan melihat apakah koneksi kabel / Wi-Fi memakai DHCP. DDLauncher tidak pernah membaca alamat IP itu sendiri, dan reservasi DHCP di router tetap terlihat dinamis.
 - **Editor warna**: opasitas, warna (bawaan / kustom) dan enam templat. Perubahan langsung tampil di launcher, dan Batal mengembalikannya.
 - **Info**: bahasa tampilan, versi, tanggal build, nama pengembang, dan tombol Debug Mode.
+  - **Debug Mode**: ekspor / impor pengaturan, dan lainnya.
 
 ## Mencopot
 
@@ -123,7 +112,6 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 - Pengaturan disimpan di `%APPDATA%\CBApps\DDLauncher\`. Jika ada pengaturan di lokasi lama `%APPDATA%\DDLauncher\`, pengaturan itu disalin otomatis saat pertama kali dijalankan. Folder lama dibiarkan, jadi versi lama tetap bisa memakainya (perubahan setelah penyalinan tidak terbawa ke versi lama).
 - Aplikasi yang diatur sebagai admin menampilkan konfirmasi UAC setiap kali dijalankan (termasuk saat startup).
 - Beberapa aplikasi mengabaikan "Mulai diminimalkan". Untuk OBS, mengisi `--minimize-to-tray` di "Opsi peluncuran" lebih andal.
-- Kata sandi OBS disimpan di file pengaturan sebagai teks biasa.
 - Bantuan di dalam aplikasi (`?`) menjelaskan untung-rugi menjalankan sebagai administrator, mengapa drag & drop tidak bisa, dan cara mengatasi layar hitam.
 
 ## Lisensi
@@ -131,6 +119,24 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 GPL-3.0 ([LICENSE](LICENSE)). Lisensi pustaka yang disertakan (PySide6 / Qt, obsws-python, dll.) ada di [THIRD-PARTY-LICENSES.txt](THIRD-PARTY-LICENSES.txt).
 
 ## Untuk developer
+
+### Menjalankan dari kode sumber
+
+```powershell
+py -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pythonw main.py
+```
+
+Untuk membuat versi folder (`dist\DDLauncher\`) dan installer (installer memerlukan Inno Setup 6):
+
+```powershell
+.venv\Scripts\pip install pyinstaller
+.venv\Scripts\pyinstaller DDLauncher.spec
+iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+```
+
+### Daftar file
 
 | File | Peran |
 |---|---|
@@ -144,6 +150,7 @@ GPL-3.0 ([LICENSE](LICENSE)). Lisensi pustaka yang disertakan (PySide6 / Qt, obs
 | `about.py` | Tanggal build (di exe ditulis oleh `DDLauncher.spec`) dan format tanggal tiap bahasa |
 | `theme.py` / `settings_dialog.py` | Tampilan, jendela pengaturan |
 | `uninstaller.py` | Uninstaller aman (`DDLauncher-Uninstall.exe`) |
+| `startup_items.py` | Membaca dan mengubah entri startup Windows (Run di registry dan folder Startup; dicadangkan sebelum diubah) |
 
 - **Pemisahan hak akses**: launcher sendiri berjalan dengan hak akses normal. Launcher menerima drop dari Explorer dan meneruskan path file ke OBS (yang berjalan sebagai administrator) lewat WebSocket localhost. Lalu lintas WebSocket tidak dibatasi UIPI, jadi tetap sampai meskipun hak aksesnya berbeda.
 - **Beberapa launcher**: `launchers` di file pengaturan adalah array. Setiap elemen membuat satu jendela (belum bisa ditambahkan dari jendela pengaturan, jadi edit JSON secara langsung).

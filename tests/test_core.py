@@ -340,13 +340,12 @@ def test_known_app_ports():
 
 
 def test_drop_panel_beside_launcher():
-    from launcher_window import beside_rect, grip_corner
+    from launcher_window import beside_rect
     area, launcher = (0, 0, 1920, 1040), (1800, 640, 120, 400)   # 右下のランチャー
     x, y, w, h = beside_rect(area, launcher, (760, 300), gap=0)
     assert y + h == 640 and x + w <= 1920                      # 上にくっつき、被らない
-    assert grip_corner((x, y, w, h), launcher, "bottom_right") == (True, True)   # つまみはランチャーから遠い左上
     x, y, w, h = beside_rect(area, (1800, 0, 120, 400), (760, 300), gap=0)   # 右上 → 下にくっつく
-    assert y == 400 and grip_corner((x, y, w, h), (1800, 0, 120, 400), "top_right") == (False, True)
+    assert y == 400
     l = config.normalize({"launchers": [{"on_top": 0, "dnd_size": ["a"]}]})["launchers"][0]
     assert (l["on_top"], l["dnd_on_top"], l["dnd_size"]) == (False, True, [0, 0])
     assert config.normalize({"launchers": [{"dnd_size": [900, 99999]}]})["launchers"][0]["dnd_size"] == [900, 4000]
@@ -549,6 +548,167 @@ def test_sequence_timeline():
     assert [fmt_sec(s) for s in (0, 2.5, 59.96, 60, 95, 120.5)] == ["0秒", "2.5秒", "1分", "1分", "1分35秒", "2分0.5秒"]
     i18n.set_language("en")
     assert fmt_sec(95) == "1 min 35 s"
+
+
+
+def test_drop_panel_grips():
+    from PySide6.QtCore import Qt
+    from launcher_window import grip_rect
+    w, h, g, t = 400, 300, 14, 5
+    assert grip_rect(Qt.TopEdge | Qt.LeftEdge, w, h, g, t) == (0, 0, 14, 14)
+    assert grip_rect(Qt.BottomEdge | Qt.RightEdge, w, h, g, t) == (386, 286, 14, 14)
+    assert grip_rect(Qt.TopEdge, w, h, g, t) == (14, 0, 372, 5)          # 辺は角を除いた帯
+    assert grip_rect(Qt.RightEdge, w, h, g, t) == (395, 14, 5, 272)
+    assert grip_rect(Qt.LeftEdge, 20, 20, g, t)[3] == 0                 # 小さすぎても負にならない
+    l = config.normalize({"launchers": [{}]})["launchers"][0]
+    assert (l["dnd_on_launcher"], l["dnd_resize"]) == (True, "corners")   # 既定は今までどおりランチャーにも落とせる
+    l = config.normalize({"launchers": [{"dnd_on_launcher": 0, "dnd_resize": "x"}]})["launchers"][0]
+    assert (l["dnd_on_launcher"], l["dnd_resize"]) == (False, "corners")
+    assert config.normalize({"launchers": [{}]})["launchers"][0]["dnd_warn_count"] == 5   # 既定は 5 個以上で確認
+    for raw, want in (("x", 5), (-3, 0), (5000, 999), ("12", 12)):
+        assert config.normalize({"launchers": [{"dnd_warn_count": raw}]})["launchers"][0]["dnd_warn_count"] == want
+
+
+def test_dnd_exts_and_collect():
+    import tempfile
+    import obs_bridge
+    from obs_bridge import collect_files, file_kind
+    assert config.parse_exts("png, .JPG  webp；x y!z jpg") == [".png", ".jpg", ".webp", ".x"]   # 重複・不正な文字は捨てる
+    assert config.parse_exts([".PNG", "gif"]) == [".png", ".gif"]
+    l = config.normalize({"launchers": [{}]})["launchers"][0]
+    assert l["dnd_pick"] is False and l["dnd_exts"] == config.DEFAULT_EXTS
+    l = config.normalize({"launchers": [{"dnd_exts": {"image": "png", "video": 3}}]})["launchers"][0]
+    assert l["dnd_exts"] == {"image": [".png"], "video": config.DEFAULT_EXTS["video"], "audio": config.DEFAULT_EXTS["audio"]}
+    custom = {"image": [".png"], "video": [], "audio": [".mp3"]}
+    assert file_kind("a.JPG") == "image" and file_kind("a.jpg", custom) is None and file_kind("a.mp4", custom) is None
+    assert source_spec("a.png", custom)[0] == "image_source"
+    with tempfile.TemporaryDirectory() as d:
+        sub = os.path.join(d, "サブ フォルダ")
+        os.makedirs(sub)
+        for name in ("b.png", "a.mp4", "note.txt", os.path.join("サブ フォルダ", "c.mp3")):
+            open(os.path.join(d, name), "w").close()
+        files, cut = collect_files([d])
+        assert [os.path.basename(f) for f in files] == ["a.mp4", "b.png", "c.mp3"] and not cut   # サブフォルダも読む
+        assert [os.path.basename(f) for f in collect_files([d], custom)[0]] == ["b.png", "c.mp3"]
+        limit = obs_bridge.FILE_LIMIT
+        obs_bridge.FILE_LIMIT = 2
+        try:
+            files, cut = collect_files([d])
+            assert len(files) == 2 and cut                                         # 上限で打ち切る
+        finally:
+            obs_bridge.FILE_LIMIT = limit
+
+
+def test_obs_add_options():
+    add = config.normalize({})["obs"]["add"]
+    assert (add["visible"], add["media_start"], add["volume_db"], add["name"]) == (True, "play", 0.0, "stem")   # 既定は今までと同じ
+    add = config.normalize({"obs": {"add": {"media_start": "x", "volume_db": "5", "monitor": "both", "fit": 1}}})["obs"]["add"]
+    assert (add["media_start"], add["volume_db"], add["monitor"], add["fit"], add["restart"]) == ("play", 0.0, "both", True, True)
+    assert config.normalize({"obs": {"add": {"volume_db": -250}}})["obs"]["add"]["volume_db"] == -100.0
+    assert config.normalize({"obs": {"add": {"loop_exts": "MP3, wav"}}})["obs"]["add"]["loop_exts"] == [".mp3", ".wav"]
+    assert config.normalize({})["obs"]["add"]["loop_exts"] == []   # 空 = すべてループ（loop がオンのとき）
+
+
+def test_obs_bridge_worker_applies_options():
+    from types import SimpleNamespace
+    import obs_bridge
+    calls = []
+
+    class FakeClient:
+        def __init__(self, **kw): pass
+        def get_current_program_scene(self): return SimpleNamespace(current_program_scene_name="Main")
+        def get_input_list(self): return SimpleNamespace(inputs=[{"inputName": "a"}])
+        def get_video_settings(self): return SimpleNamespace(base_width=1920, base_height=1080)
+        def create_input(self, scene, name, kind, settings, enabled):
+            calls.append(("create", name, kind, enabled, settings.get("looping")))
+            return SimpleNamespace(scene_item_id=len(calls))
+        def trigger_media_input_action(self, name, action): calls.append(("action", name, action.rsplit("_", 1)[1]))
+        def set_input_volume(self, name, vol_mul=None, vol_db=None): calls.append(("volume", name, vol_db))
+        def set_input_mute(self, name, muted): calls.append(("mute", name, muted))
+        def set_input_audio_monitor_type(self, name, mon_type): calls.append(("monitor", name, mon_type))
+        def set_scene_item_transform(self, scene, item_id, t): calls.append(("fit", item_id, t["boundsWidth"], t["boundsHeight"]))
+        def disconnect(self): pass
+
+    real = obs_bridge.obs.ReqClient
+    obs_bridge.obs.ReqClient = FakeClient
+    try:
+        cfg = {"host": "localhost", "port": 4455, "password": "", "target_scene": "",
+               "add": {"visible": False, "media_start": "first", "volume_db": -6.0, "mute": True, "loop": True, "loop_exts": [".mp3"],
+                       "restart": True, "monitor": "both", "fit": True, "name": "stem"}}
+        bridge = obs_bridge.ObsBridge(cfg)
+        bridge._worker([r"C:\x\a.mp4", r"C:\x\b.mp3", r"C:\x\c.png"])
+    finally:
+        obs_bridge.obs.ReqClient = real
+    assert calls[0] == ("create", "a (2)", "ffmpeg_source", False, False)  # 同名があれば連番、非表示、mp4 はループしない
+    assert next(c for c in calls if c[:2] == ("create", "b"))[4] is True     # mp3 だけループ
+    assert ("action", "a (2)", "STOP") not in calls                       # 先頭は再生のまま
+    assert ("action", "b", "STOP") in calls                                # 2 個目以降は停止
+    assert ("volume", "b", -6.0) in calls and ("mute", "b", True) in calls
+    assert ("monitor", "a (2)", "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT") in calls
+    fits = [c for c in calls if c[0] == "fit"]
+    assert len(fits) == 2 and all(c[2:] == (1920.0, 1080.0) for c in fits)  # 音だけの b.mp3 は合わせない
+    assert ("create", "c", "image_source", False, None) in calls            # 画像には音の設定をしない
+
+
+def test_startup_approved_value():
+    import startup_items as si
+    assert si.approved_enabled(None) and si.approved_enabled(b"")          # 値が無ければ有効
+    assert si.approved_enabled(si.approved_value(True))
+    assert not si.approved_enabled(si.approved_value(False))
+    assert si.approved_enabled(bytes([6]) + bytes(11))                      # 06 も有効
+    assert len(si.approved_value(False)) == 12
+
+
+def test_startup_split_join_command():
+    import startup_items as si
+    assert si.split_command('"C:\\Program Files\\a.exe" -x "y z"') == ("C:\\Program Files\\a.exe", '-x "y z"')
+    assert si.split_command("C:\\a.exe --min") == ("C:\\a.exe", "--min")
+    assert si.split_command('"C:\\a b.exe') == ("C:\\a b.exe", "")
+    assert si.join_command("C:\\Program Files\\a.exe", "-x") == '"C:\\Program Files\\a.exe" -x'
+    assert si.join_command("C:\\a.exe", "") == "C:\\a.exe"
+    t, a = si.split_command(si.join_command("C:\\日本語 フォルダ\\b.exe", "--tray"))
+    assert (t, a) == ("C:\\日本語 フォルダ\\b.exe", "--tray")
+
+
+def test_startup_reg_text():
+    import winreg
+    import startup_items as si
+    text = si.reg_text([("HKEY_CURRENT_USER\\Software\\X", {
+        "App": ('"C:\\a b\\x.exe" -q', winreg.REG_SZ),
+        "Bin": (bytes([3, 0, 0, 0]), winreg.REG_BINARY),
+        "Exp": ("%A%", winreg.REG_EXPAND_SZ),
+        "Skip": (["m"], winreg.REG_MULTI_SZ)})])
+    assert text.startswith("Windows Registry Editor Version 5.00\r\n")
+    assert '"App"="\\"C:\\\\a b\\\\x.exe\\" -q"' in text
+    assert '"Bin"=hex:03,00,00,00' in text
+    assert '"Exp"=hex(2):25,00,41,00,25,00,00,00' in text
+    assert "Skip" not in text
+
+
+def test_startup_parse_lnk():
+    import struct
+    import startup_items as si
+    path = b"C:\\Tools\\app.exe\0"
+    info_header = 0x1C
+    info = struct.pack("<7I", info_header + len(path) + 1, info_header, 1, 0, info_header, 0, info_header + len(path)) + path + b"\0"
+    args = "--tray 日本"
+    flags = 0x2 | 0x20 | 0x80   # HasLinkInfo | HasArguments | IsUnicode
+    header = struct.pack("<I", 0x4C) + bytes(16) + struct.pack("<I", flags) + bytes(0x4C - 24)
+    data = header + info + struct.pack("<H", len(args)) + args.encode("utf-16-le")
+    assert si.parse_lnk(data) == ("C:\\Tools\\app.exe", args)
+    assert si.parse_lnk(b"not a link") == ("", "")
+    assert si.parse_lnk(header[:0x4C]) == ("", "")   # 中身が無くても落ちない
+
+
+
+def test_startup_resolve_target():
+    import startup_items as si
+    windir = os.environ["WINDIR"]
+    assert si.resolve_target("%WINDIR%\\explorer.exe /x").lower() == os.path.join(windir, "explorer.exe").lower()
+    assert si.resolve_target("rundll32.exe shell32.dll,Foo").lower().endswith("rundll32.exe")   # PATH から探す
+    assert si.resolve_target('"C:\\no such dir\\x.exe" -a') == ""
+    assert si.resolve_target("https://example.com/") == ""
+    assert si.resolve_target("") == ""
 
 
 if __name__ == "__main__":

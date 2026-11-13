@@ -5,6 +5,7 @@
 </style>
 
 <h2>Cara membaca tampilan</h2>
+<p><img src="img/status.png" width="480"></p>
 <ul>
  <li>Bingkai / lampu <b>abu-abu</b>: berhenti / belum diatur</li>
  <li><b>Hijau</b>: berjalan (hak akses normal)</li>
@@ -42,6 +43,7 @@ Klik kanan area kosong launcher untuk membuka menu (posisi, urutan, pengaturan, 
 </ul>
 
 <h2>Mengapa drag &amp; drop tidak bisa</h2>
+<p><img src="img/dnd_uipi.png" width="480"></p>
 <p>Windows punya mekanisme bernama UIPI (User Interface Privilege Isolation) yang
 <b>memblokir pesan jendela dari proses berhak rendah ke proses berhak tinggi</b>.
 Explorer berjalan dengan hak normal dan OBS sebagai administrator, jadi operasi drop (OLE D&amp;D / WM_DROPFILES)
@@ -52,6 +54,7 @@ Koneksi jaringan tidak terkena UIPI, jadi tetap sampai ke OBS dengan aman meskip
 <p>※ Jika launcher sendiri dijalankan sebagai administrator, D&amp;D tidak bisa dipakai karena alasan yang sama (header menampilkan ⚠ADMIN).</p>
 
 <h2>Perbedaan Game Capture dan Window Capture</h2>
+<p><img src="img/capture.png" width="480"></p>
 <table border="1" cellspacing="0" cellpadding="4">
  <tr><th></th><th>Game Capture</th><th>Window Capture</th></tr>
  <tr><td>Cara kerja</td>
@@ -92,6 +95,7 @@ Koneksi jaringan tidak terkena UIPI, jadi tetap sampai ke OBS dengan aman meskip
 </ul>
 
 <h2>Urutan peluncuran</h2>
+<p><img src="img/sequence.png" width="480"></p>
 <ul>
  <li>Menjalankan aplikasi sesuai urutan di pengaturan, masing-masing "jeda detik setelah aplikasi sebelumnya dijalankan". Aplikasi yang sudah berjalan tidak dijalankan dua kali.</li>
  <li>Taruh DAW dan VB-Audio (VoiceMeeter, dll.) di akhir dengan jeda lebih panjang agar tidak berebut perangkat audio.</li>
@@ -101,6 +105,7 @@ Koneksi jaringan tidak terkena UIPI, jadi tetap sampai ke OBS dengan aman meskip
 </ul>
 
 <h2>Memilih monitor</h2>
+<p><img src="img/monitor.png" width="480"></p>
 <ul>
  <li>Jika dipilih di kolom "Pindah ke monitor", launcher menunggu jendela muncul hingga 30 detik lalu memindahkannya ke monitor itu (posisi relatif dan status minimal / maksimal tetap dijaga).</li>
  <li><b>Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan</b> (UIPI mencegah launcher berhak normal mengontrolnya).
@@ -109,6 +114,7 @@ Koneksi jaringan tidak terkena UIPI, jadi tetap sampai ke OBS dengan aman meskip
 </ul>
 
 <h2>Port</h2>
+<p><img src="img/ports.png" width="480"></p>
 <ul>
  <li>Daftarkan port yang dipakai OBS WebSocket (4455), comment viewer, dan tool integrasi untuk memeriksa statusnya.</li>
  <li><b>Kosong</b> (abu-abu) / <b>Dipakai</b> (hijau: dipakai proses yang diharapkan) / <b>Bentrok</b> (merah: dipakai proses tak terduga, atau terdaftar dua kali).</li>
@@ -118,5 +124,6 @@ Koneksi jaringan tidak terkena UIPI, jadi tetap sampai ke OBS dengan aman meskip
 </ul>
 
 <h2>Pengaturan di OBS</h2>
+<p><img src="img/obs_websocket.png" width="480"></p>
 <p>Di OBS, aktifkan melalui menu "Tools" → "WebSocket Server Settings", lalu masukkan port dan kata sandinya
 di pengaturan DDLauncher bagian "Umum / OBS".</p>

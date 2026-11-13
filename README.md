@@ -4,9 +4,12 @@
 
 A lightweight launcher for streamers that sits in a corner of the screen (Windows).
 
+> [!TIP]
+> **Drag & drop files into OBS as sources, even when OBS runs as administrator.**
+> Normally, running OBS as administrator makes Windows block drag & drop from Explorer. DDLauncher takes the files you drop on the launcher and hands them to OBS over obs-websocket, so this restriction doesn't apply.
+
 - Starts OBS and your other apps in a set order, with a delay between each. Apps that are already running aren't started twice.
 - A colored lamp shows whether each app is running, and whether it runs as administrator.
-- **Add sources to OBS by drag & drop, even when OBS runs as administrator** (via obs-websocket).
 - Normally shows just one small icon in the corner, and opens only when you hover over it.
 
 <p>
@@ -27,33 +30,17 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 
 | Version | File | Good for |
 |---|---|---|
-| Installer | `DDLauncher-0.1.0-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
-| Standalone | `DDLauncher-0.1.0-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
+| Installer | `DDLauncher-0.2.0-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
+| Standalone | `DDLauncher-0.2.0-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
 
 - Standalone: unzip it anywhere and run `DDLauncher.exe`.
-- The exe isn't signed, so on first launch Windows SmartScreen ("Windows protected your PC") or your antivirus may warn you. Click "More info" → "Run anyway". If you'd rather check first, run it from source as shown below.
+- The exe isn't signed, so on first launch Windows SmartScreen ("Windows protected your PC") or your antivirus may warn you. Click "More info" → "Run anyway". If you'd rather check first, run it from source (see "For developers" below).
 - Both versions keep their settings in `%APPDATA%\CBApps\DDLauncher\`.
 
-### Running from source
-
-```powershell
-py -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\pythonw main.py
-```
-
-To build the folder version (`dist\DDLauncher\`) and the installer (the installer needs Inno Setup 6):
-
-```powershell
-.venv\Scripts\pip install pyinstaller
-.venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
-```
-
-### Setting up OBS
+## Setting up OBS
 
 1. In OBS, open "Tools" → "WebSocket Server Settings" and turn on "Enable WebSocket server".
-2. Note the port (4455 by default) and the password, and enter them in the launcher under ⚙ → "General / OBS".
+2. Note the port and the password, and enter them in the launcher under ⚙ → "General / OBS".
 
 ## How to use
 
@@ -92,9 +79,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 
 ### D&D mode
 
-- Drop image, video or audio files on the launcher to add them as sources to the chosen OBS scene (the current program scene if left empty).
+- Drop image, video or audio files on the D&D space (or the launcher) to add them as sources to the chosen OBS scene (the current program scene if left empty). Dropping on the launcher can be turned off with ⚙ → "Drop on launcher". If you drop many files at once (5 or more by default), it asks before adding them; change the number with ⚙ → "Confirm multiple drops". Turn on ⚙ → "Folders / mixed files" to drop whole folders and choose which kinds (images, videos, audio) to add, and to set the file extensions for each kind. ⚙ → "Sources added by D&D" sets how new sources start: shown or hidden, playing or stopped (or only the first file playing), volume, mute, loop, audio monitoring, fit to screen, and the source name.
+  - "Fit to screen" and **Image Resize Reader for OBS**: if you use Image Resize Reader, leave "Fit to screen" off. It also fits sources added by DDLauncher, and with both on the source ends up shifted or cut off.
 - In D&D mode, the launcher ignores the margin and snaps to the screen edge, so a file can't fall into the gap and land in another window. Turn this off with ⚙ → "Position in D&D mode".
-- The D&D space opens right next to the launcher, touching it but never covering it. Drag the striped corner (the one away from the launcher) to change its size, or drag anywhere else to move it. Size and position are remembered; if you drop it onto the launcher it slides to the nearest edge of the launcher. Right-click it to reset the size or put it back next to the launcher.
+- The D&D space opens right next to the launcher, touching it but never covering it. Drag a striped corner to change its size, or drag anywhere else to move it (⚙ → "D&D space resizing" lets you resize from the edges too). Size and position are remembered; if you drop it onto the launcher it slides to the nearest edge of the launcher. Right-click it to reset the size or put it back next to the launcher. If you lose track of it, use "Put the D&D space back next to the launcher (default size)" in ⚙.
 
 ### Reading the display
 
@@ -108,9 +96,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
   - If "Icon image" is empty, the exe's icon is used, or the site's icon when the path is a URL. Put a web address in "Icon image" to use that site's icon (or the image itself, for an image's address).
   - A removed row comes back with "Undo" (Ctrl+Z). The timeline under the table shows how many seconds after the start each app launches.
   - "Move to monitor" moves the app's window to that monitor after it starts. Apps started as administrator can't be moved because of a Windows restriction.
-- **Ports**: register the ports you use to see whether each is free, in use, or in conflict (used by an unexpected process, or registered twice). "Free up" closes the process using that port (after a confirmation). "Detect" adds the ports your registered apps use (OBS from its WebSocket settings, other apps while they are running). It also reads OneComme and BouyomiChan from their settings, so they are found even when closed; Yukarinette Connector NEO is found while it is running. You choose which of the found ports to add, and it warns you if OneComme sends to a different port than BouyomiChan listens on. You can also note whether this PC's IP address is static or dynamic; "Check" fills it in by looking only at whether the wired / Wi-Fi connection uses DHCP. DDLauncher never reads the IP address itself, and a DHCP reservation on your router still shows as dynamic.
+- **Ports**: register the ports you use to see whether each is free, in use, or in conflict (used by an unexpected process, or registered twice). "Free up" closes the process using that port (after a confirmation). "Detect" adds the ports your registered apps use (OBS from its WebSocket settings, other apps while they are running). Some comment viewers and text-to-speech tools popular with streamers are read from their settings files, so they are found even when closed. You choose which of the found ports to add, and it warns you if two linked apps disagree on a port. You can also note whether this PC's IP address is static or dynamic; "Check" fills it in by looking only at whether the wired / Wi-Fi connection uses DHCP. DDLauncher never reads the IP address itself, and a DHCP reservation on your router still shows as dynamic.
 - **Color editor**: opacity, colors (default / custom) and six templates. Changes show on the launcher right away, and Cancel puts them back.
 - **Info**: language, version, build date, developer credit and the Debug Mode switch.
+  - **Debug Mode**: settings export / import, and more.
 
 ## Uninstalling
 
@@ -123,7 +112,6 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 - Settings are saved in `%APPDATA%\CBApps\DDLauncher\`. If settings exist in the old location `%APPDATA%\DDLauncher\`, they're copied over automatically on first start. The old folder is left as is, so an older version still works with it (changes made after the copy don't carry back to the older version).
 - Apps set to run as admin show a UAC prompt every time they start (at Windows startup too).
 - Some apps ignore "Start minimized". For OBS, putting `--minimize-to-tray` in "Launch options" is more reliable.
-- The OBS password is stored in the settings file as plain text.
 - The in-app help (`?`) covers the pros and cons of running as administrator, why drag & drop stops working, and how to fix black screens.
 
 ## License
@@ -131,6 +119,24 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 GPL-3.0 ([LICENSE](LICENSE)). Licenses of the bundled libraries (PySide6 / Qt, obsws-python and others) are in [THIRD-PARTY-LICENSES.txt](THIRD-PARTY-LICENSES.txt).
 
 ## For developers
+
+### Running from source
+
+```powershell
+py -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pythonw main.py
+```
+
+To build the folder version (`dist\DDLauncher\`) and the installer (the installer needs Inno Setup 6):
+
+```powershell
+.venv\Scripts\pip install pyinstaller
+.venv\Scripts\pyinstaller DDLauncher.spec
+iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+```
+
+### Files
 
 | File | Role |
 |---|---|
@@ -144,6 +150,7 @@ GPL-3.0 ([LICENSE](LICENSE)). Licenses of the bundled libraries (PySide6 / Qt, o
 | `about.py` | Build date (written into the exe by `DDLauncher.spec`) and each language's date format |
 | `theme.py` / `settings_dialog.py` | Look and feel, settings window |
 | `uninstaller.py` | Safe uninstaller (`DDLauncher-Uninstall.exe`) |
+| `startup_items.py` | Reading and changing Windows startup entries (registry Run and the Startup folder; backup before changes) |
 
 - **Privilege split**: the launcher itself runs with normal rights. It receives drops from Explorer and passes the file paths to OBS (running as administrator) over the localhost WebSocket. WebSocket traffic isn't restricted by UIPI, so it gets through despite the different rights.
 - **Multiple launchers**: `launchers` in the settings file is an array. Each element creates one window (this can't be added from the settings window yet, so edit the JSON directly).

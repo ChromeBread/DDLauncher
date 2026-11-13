@@ -158,6 +158,7 @@ class Controller(QObject):
         dlg = self.settings_dlg = SettingsDialog(self.windows.index(window), self.cfg, window)
         dlg.colors_preview.connect(self.preview_colors)
         dlg.sound_apply.connect(self.apply_sound)
+        dlg.dnd_reset.connect(window.reset_panel)
         window.show_beside(dlg)
         try:
             accepted = dlg.exec()

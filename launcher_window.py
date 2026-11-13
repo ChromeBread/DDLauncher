@@ -6,14 +6,15 @@ import time
 from PySide6.QtCore import (QAbstractAnimation, QEvent, QFileInfo, QPoint, QPropertyAnimation, QRect, QSize,
                             Qt, QTimer, Signal)
 from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QIcon, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import (QApplication, QDialog, QFileIconProvider, QFrame, QGridLayout, QHBoxLayout,
-                               QLabel, QMenu, QTextBrowser, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileIconProvider, QFrame, QGridLayout, QHBoxLayout,
+                               QLabel, QMenu, QMessageBox, QTextBrowser, QToolButton, QVBoxLayout, QWidget)
 
+import config
 import favicon
 import i18n
 import theme
 import winproc
-from obs_bridge import ObsBridge, fmt_bytes, source_spec
+from obs_bridge import ObsBridge, collect_files, file_kind, fmt_bytes, source_spec
 from sequencer import Sequencer, place_on_monitor
 
 tr = i18n.tr
@@ -349,30 +350,35 @@ def free_rect(area: tuple[int, int, int, int], pos: tuple[int, int], size: tuple
     return x, y, w, h
 
 
-def grip_corner(panel: tuple[int, int, int, int], launcher: tuple[int, int, int, int], corner: str) -> tuple[bool, bool]:
-    """D&D スペースの大きさを変えるつまみの角 (top, left)。ランチャーから遠い角にする（くっついた辺は動かさない）。"""
-    px, py, pw, ph = panel
-    lx, ly, lw, lh = launcher
-    top = py + ph // 2 < ly + lh // 2
-    pcx, lcx = px + pw // 2, lx + lw // 2
-    left = pcx < lcx or (pcx == lcx and "right" in corner)
-    return top, left
+GRIP_CORNERS = [Qt.TopEdge | Qt.LeftEdge, Qt.TopEdge | Qt.RightEdge, Qt.BottomEdge | Qt.LeftEdge, Qt.BottomEdge | Qt.RightEdge]
+GRIP_SIDES = [Qt.TopEdge, Qt.BottomEdge, Qt.LeftEdge, Qt.RightEdge]
+
+
+def grip_rect(edges, w: int, h: int, g: int, t: int) -> tuple[int, int, int, int]:
+    """つまみの位置 (x, y, w, h)。角は g×g の正方形、辺は角を除いた太さ t の帯。"""
+    top, bottom = bool(edges & Qt.TopEdge), bool(edges & Qt.BottomEdge)
+    left, right = bool(edges & Qt.LeftEdge), bool(edges & Qt.RightEdge)
+    if (top or bottom) and (left or right):   # 角
+        return (0 if left else w - g), (0 if top else h - g), g, g
+    if top or bottom:
+        return g, (0 if top else h - t), max(w - 2 * g, 0), t
+    return (0 if left else w - t), g, t, max(h - 2 * g, 0)
 
 
 class ResizeGrip(QWidget):
-    """角のつまみ。ドラッグで D&D スペースの大きさを変える（Windows 標準のサイズ変更に任せる）。"""
+    """D&D スペースの大きさを変えるつまみ（角または辺）。ドラッグは Windows 標準のサイズ変更に任せる。"""
 
-    def __init__(self, panel: "DropPanel"):
+    def __init__(self, panel: "DropPanel", edges):
         super().__init__(panel)
         self.panel = panel
-        self.edges = Qt.BottomEdge | Qt.RightEdge
-
-    def set_corner(self, top: bool, left: bool) -> None:
-        self.edges = (Qt.TopEdge if top else Qt.BottomEdge) | (Qt.LeftEdge if left else Qt.RightEdge)
-        self.setCursor(Qt.SizeFDiagCursor if top == left else Qt.SizeBDiagCursor)
-        p = self.panel
-        self.move(0 if left else p.width() - self.width(), 0 if top else p.height() - self.height())
-        self.update()
+        self.edges = edges
+        top, left = bool(edges & Qt.TopEdge), bool(edges & Qt.LeftEdge)
+        vertical, horizontal = bool(edges & (Qt.TopEdge | Qt.BottomEdge)), bool(edges & (Qt.LeftEdge | Qt.RightEdge))
+        self.corner = vertical and horizontal
+        if self.corner:
+            self.setCursor(Qt.SizeFDiagCursor if top == left else Qt.SizeBDiagCursor)
+        else:
+            self.setCursor(Qt.SizeVerCursor if vertical else Qt.SizeHorCursor)
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton and self.window().windowHandle():
@@ -382,6 +388,8 @@ class ResizeGrip(QWidget):
             self.window().windowHandle().startSystemResize(self.edges)
 
     def paintEvent(self, _):
+        if not self.corner:
+            return   # 辺のつまみは描かない（マウスを乗せるとカーソルが変わる）
         p = QPainter(self)
         p.setPen(QPen(QColor(theme.C["accent"]), 1))
         w, h = self.width(), self.height()
@@ -422,7 +430,8 @@ class DropPanel(QWidget):
         lay.addWidget(self.body)
         lay.addStretch()
         lay.addLayout(tab)
-        self.grip = ResizeGrip(self)
+        self.grips = [ResizeGrip(self, e) for e in GRIP_CORNERS + GRIP_SIDES]
+        self._grip_size = (14, 5)   # (角の大きさ, 辺の太さ)。refresh で倍率に合わせる
         # サイズ変更の終わり（マウスを離した）を、リサイズが 0.3 秒止まったことで判定する
         self.resize_done = QTimer(self, singleShot=True, interval=300, timeout=self._on_resized)
 
@@ -451,8 +460,7 @@ class DropPanel(QWidget):
                          padding: 0 {theme.px(8, s)}px; }}""")
         m = theme.px(12, s)
         self.root.layout().setContentsMargins(m, m, m, theme.px(4, s))
-        g = theme.px(14, s)
-        self.grip.setFixedSize(g, g)
+        self._grip_size = (theme.px(14, s), max(theme.px(5, s), 4))
         # 最小 = 本文が収まる大きさ。既定 = 以前の大きさ（幅 380）の縦横 2 倍
         min_w = theme.px(240, s)
         self.setMinimumSize(min_w, self.layout().totalHeightForWidth(min_w))
@@ -482,11 +490,20 @@ class DropPanel(QWidget):
         x, y, w, h = rect
         if (x, y, w, h) != (self.x(), self.y(), self.width(), self.height()):
             self.setGeometry(x, y, w, h)
-        self.grip.set_corner(*grip_corner((x, y, w, h), launcher, L.lcfg["corner"]))
+        self._layout_grips()
+
+    def _layout_grips(self) -> None:
+        """四隅のつまみは常に、四辺のつまみは「全辺」の設定のときだけ出す。"""
+        g, t = self._grip_size
+        sides = self.launcher.lcfg["dnd_resize"] == "edges"
+        for grip in self.grips:
+            grip.setGeometry(*grip_rect(grip.edges, self.width(), self.height(), g, t))
+            grip.setVisible(grip.corner or sides)
+            grip.raise_()   # 本文のラベルより手前に
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
-        self.grip.set_corner(bool(self.grip.edges & Qt.TopEdge), bool(self.grip.edges & Qt.LeftEdge))
+        self._layout_grips()
         if self.resizing:
             self.resize_done.start()
 
@@ -513,10 +530,10 @@ class DropPanel(QWidget):
         self.launcher.changed.emit()
 
     def dragEnterEvent(self, e):
-        self.launcher.dragEnterEvent(e)
+        self.launcher.accept_drag(e)
 
     def dropEvent(self, e):
-        self.launcher.dropEvent(e)
+        self.launcher.drop_files(e)
 
     def contextMenuEvent(self, e):
         L = self.launcher
@@ -1102,21 +1119,111 @@ class LauncherWindow(QWidget):
         else:
             self.panel.hide()
 
+    def _exts(self) -> dict | None:
+        """読み込む拡張子。「種類を選ぶ」がオフなら None（既定の拡張子）。"""
+        return self.lcfg["dnd_exts"] if self.lcfg["dnd_pick"] else None
+
     def _drop_paths(self, e) -> list[str]:
+        """受け付けるもの。「種類を選ぶ」がオンならフォルダも（中身はドロップの後で見る）。"""
         if self.lcfg["mode"] != "dnd" or not e.mimeData().hasUrls():
             return []
-        return [u.toLocalFile() for u in e.mimeData().urls() if u.isLocalFile() and source_spec(u.toLocalFile())]
+        pick, exts = self.lcfg["dnd_pick"], self._exts()
+        local = (u.toLocalFile() for u in e.mimeData().urls() if u.isLocalFile())
+        return [p for p in local if (pick and os.path.isdir(p)) or source_spec(p, exts)]
 
-    def dragEnterEvent(self, e):
+    def accept_drag(self, e) -> None:
         if self._drop_paths(e):
             e.acceptProposedAction()
 
+    def dragEnterEvent(self, e):
+        if self.lcfg["dnd_on_launcher"]:   # オフならランチャーの上には落とせない（D&D スペースだけ）
+            self.accept_drag(e)
+
     def dropEvent(self, e):
+        if self.lcfg["dnd_on_launcher"]:
+            self.drop_files(e)
+
+    def drop_files(self, e) -> None:
         paths = self._drop_paths(e)
         if paths:
             e.acceptProposedAction()
-            self.set_status(tr("status.sending", n=len(paths)))
-            self.bridge.add_files(paths)
+            # 確認画面やフォルダの中を見る処理は、ドロップを受け取ってから（ドロップ中に止めるとエクスプローラー側が固まる）
+            QTimer.singleShot(0, lambda: self._drop_picked(paths) if self.lcfg["dnd_pick"] else self._check_count(paths))
+
+    def _drop_picked(self, paths: list[str]) -> None:
+        """「種類を選ぶ」がオン: フォルダの中も集め、種類が混ざっていたら（またはフォルダなら）種類を選んでもらう。"""
+        exts = self._exts()
+        files, truncated = collect_files(paths, exts)
+        if not files:
+            self.set_status(tr("dnd.pick.none"))
+        elif truncated or len({file_kind(f, exts) for f in files}) > 1 or any(os.path.isdir(p) for p in paths):
+            self._pick_kinds(files, truncated)
+        else:
+            self._check_count(files)
+
+    def _check_count(self, paths: list[str]) -> None:
+        limit = self.lcfg["dnd_warn_count"]
+        if limit and len(paths) >= limit:
+            self._confirm_many(paths)
+        else:
+            self._send_files(paths)
+
+    def _pick_kinds(self, files: list[str], truncated: bool) -> None:
+        """読み込む種類（画像 / 映像 / 音楽）を選ぶ画面。数も見せるので、件数の確認も兼ねる。既定のボタンはキャンセル。"""
+        exts = self._exts()
+        groups = {k: [f for f in files if file_kind(f, exts) == k] for k in config.DND_KINDS}
+        d = QDialog(self)
+        d.setWindowTitle(tr("dnd.pick.title"))
+        v = QVBoxLayout(d)
+        v.addWidget(QLabel(tr("dnd.pick.body"), wordWrap=True))
+        checks = {k: QCheckBox(f"{tr('kind.' + k)}  ({len(fs)})", checked=True) for k, fs in groups.items() if fs}
+        for cb in checks.values():
+            v.addWidget(cb)
+        if truncated:
+            v.addWidget(QLabel(tr("dnd.pick.truncated", n=len(files)), wordWrap=True))
+        total = QLabel()
+        v.addWidget(total)
+        bb = QDialogButtonBox()
+        add = bb.addButton(tr("dnd.pick.add"), QDialogButtonBox.AcceptRole)
+        cancel = bb.addButton(tr("btn.cancel"), QDialogButtonBox.RejectRole)
+        add.setAutoDefault(False)
+        cancel.setDefault(True)
+        bb.accepted.connect(d.accept)
+        bb.rejected.connect(d.reject)
+        v.addWidget(bb)
+
+        def update():
+            n = sum(len(groups[k]) for k, cb in checks.items() if cb.isChecked())
+            total.setText(tr("dnd.pick.total", n=n))
+            add.setEnabled(n > 0)
+
+        for cb in checks.values():
+            cb.toggled.connect(update)
+        update()
+        if d.exec() == QDialog.Accepted:
+            self._send_files([f for f in files if checks[file_kind(f, exts)].isChecked()])
+        else:
+            self.set_status(tr("dnd.many.cancelled"))
+
+    def _send_files(self, paths: list[str]) -> None:
+        self.set_status(tr("status.sending", n=len(paths)))
+        self.bridge.add_files(paths, self._exts())
+
+    def _confirm_many(self, paths: list[str]) -> None:
+        """まとめてドロップしたときの確認（大量のソースを誤って OBS に入れる事故を防ぐ）。既定は「いいえ」。"""
+        shown = 10
+        names = "\n".join("・" + os.path.basename(p) for p in paths[:shown])   # 配信に映ってもフォルダ構造が見えないよう名前だけ
+        if len(paths) > shown:
+            names += "\n" + tr("dnd.many.more", n=len(paths) - shown)
+        box = QMessageBox(QMessageBox.Warning, tr("dnd.many.title"), tr("dnd.many.body", n=len(paths)) + "\n\n" + names,
+                          QMessageBox.Yes | QMessageBox.No, self)
+        box.button(QMessageBox.Yes).setText(tr("btn.yes"))
+        box.button(QMessageBox.No).setText(tr("btn.no"))
+        box.setDefaultButton(QMessageBox.No)
+        if box.exec() == QMessageBox.Yes:
+            self._send_files(paths)
+        else:
+            self.set_status(tr("dnd.many.cancelled"))
 
     # ---- メニュー / ヘルプ ----
     def contextMenuEvent(self, e):
@@ -1171,6 +1278,13 @@ class LauncherWindow(QWidget):
         self._sync_panel()
         self.changed.emit()
 
+    def reset_panel(self) -> None:
+        """D&D スペースを既定の大きさでランチャーの隣に戻す（画面の外などへ行ってしまったとき用）。"""
+        self.lcfg["dnd_size"] = [0, 0]
+        self.lcfg["dnd_pos"] = None
+        self._sync_panel()
+        self.changed.emit()
+
     def show_help(self) -> None:
         if self.help_dialog is None:
             d = QDialog(self)
@@ -1178,6 +1292,7 @@ class LauncherWindow(QWidget):
             d.resize(QSize(560, 600))
             tb = QTextBrowser(d)
             tb.setOpenExternalLinks(True)
+            tb.setSearchPaths([os.path.join(i18n.LOCALE_DIR, "help")])   # 挿絵 img/*.png を help フォルダから読む
             tb.setHtml(i18n.help_html())
             QVBoxLayout(d).addWidget(tb)
             self.help_dialog = d

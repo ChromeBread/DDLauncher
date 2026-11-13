@@ -15,3 +15,6 @@ Screenshot*.png
 *.zip
 CLAUDE.md
 .claude/
+
+# Changelog is kept local while the app is still in development
+CHANGELOG.md

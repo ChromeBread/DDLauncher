@@ -30,6 +30,16 @@ LAYOUTS = ["linear", "group"]
 AFTER_SEQUENCE = ["none", "minimize", "hide"]
 IP_MODES = ["", "static", "dynamic", "mixed"]   # mixed = 有線と Wi-Fi などで固定と自動が混在
 LANGUAGES = ["en", "ja", "ko", "id", "fr", "zh_TW"]   # i18n.LANGS と同じ並び
+DND_KINDS = ["image", "video", "audio"]   # D&D で読み込むファイルの種類
+DEFAULT_EXTS = {   # 種類ごとの既定の拡張子（「種類を選ぶ」がオフのときは常にこれ）
+    "image": [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tga", ".psd"],
+    "video": [".mp4", ".mkv", ".mov", ".webm", ".avi", ".flv", ".ts", ".m4v"],
+    "audio": [".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".opus"],
+}
+ADD_MEDIA_START = ["play", "first", "stop"]
+ADD_MONITOR = ["none", "monitor", "both"]
+ADD_NAME = ["stem", "name"]
+DND_RESIZE = ["corners", "edges"]   # D&D スペースの大きさを変えるつまみ: 四隅だけ / 四隅と四辺
 COLLAPSE = ["hover", "always"]   # hover = 普段はアイコン 1 個、マウスを乗せると展開 / always = 常に展開
 
 DEFAULT_APP = {
@@ -59,6 +69,11 @@ DEFAULT_LAUNCHER = {
     "dnd_on_top": True,   # D&D スペースを最前面に表示
     "dnd_size": [0, 0],   # D&D スペースの大きさ（倍率 1 のときの px）。0 = 既定の大きさ
     "dnd_pos": None,      # ドラッグで動かした D&D スペースの左上（画面座標）。None = ランチャーの隣
+    "dnd_on_launcher": True,   # D&D モード中は、ランチャーの上へのドロップも D&D スペースと同じに扱う
+    "dnd_resize": "corners",   # D&D スペースの大きさを変えるつまみ（DND_RESIZE）
+    "dnd_warn_count": 5,       # この数以上のファイルをまとめてドロップしたら確認する（0 = 確認しない）
+    "dnd_pick": False,         # フォルダや複数の種類をドロップしたら種類を選ぶ / dnd_exts を使う / フォルダの中も読む
+    "dnd_exts": DEFAULT_EXTS,  # 種類ごとに読み込む拡張子（dnd_pick がオンのときだけ使う）
     "mini_icon": "",      # 畳んだときのアイコン。空 = DDLauncher の DD / アプリの path = そのアプリのアイコン
     "collapse": "hover",  # hover = アイコン 1 個に畳み、マウスオーバーで展開 / always = 常に展開
     "layout": "group",    # linear = 角で折れる L 字 / group = 角から縦一列
@@ -89,7 +104,19 @@ DEFAULTS = {
     "color_mode": "default",   # custom = colors の色を使う（default に戻しても colors は消さない）
     "colors": {},         # theme.CUSTOM_KEYS → "#rrggbb"。変えた色だけ入る
     "animation": "full",
-    "obs": {"host": "localhost", "port": 4455, "password": "", "target_scene": ""},
+    "obs": {"host": "localhost", "port": 4455, "password": "", "target_scene": "", "add": {
+        # D&D で OBS に追加するソースの初期状態（既定は今までと同じ: 表示・すぐ再生・0 dB・ファイル名）
+        "visible": True,         # シーン上で表示するか
+        "media_start": "play",   # 映像 / 音: play = すぐ再生 / first = 先頭の 1 個だけ再生 / stop = 停止しておく
+        "volume_db": 0.0,        # 映像 / 音の音量（OBS の音声ミキサーと同じ dB）
+        "mute": False,           # ミュートして追加
+        "loop": False,           # ループ再生
+        "loop_exts": [],         # ループする拡張子（空 = 映像 / 音のすべて）
+        "restart": True,         # ソースが表示されたら最初から再生（OBS の既定と同じ）
+        "monitor": "none",       # 音声モニタリング: none / monitor（モニターのみ）/ both（モニターと出力）
+        "fit": False,            # 画像 / 映像を画面の大きさに合わせる
+        "name": "stem",          # ソース名: stem = ファイル名（拡張子なし）/ name = ファイル名（拡張子あり）
+    }},
     # ポート管理: 使うポートを登録しておき、想定外のプロセスが使っていたら衝突として表示
     "ports": [{"port": 4455, "memo": "OBS WebSocket", "process": "obs64.exe"}],
     "ip_mode": "",        # この PC の IP アドレスが固定か可変かのメモ（"" / static / dynamic）。IP そのものは取得しない
@@ -109,6 +136,17 @@ def _fill(data: dict, defaults: dict) -> dict:
         else:
             out[k] = v
     return out
+
+
+def parse_exts(value) -> list[str]:
+    """「png, .JPG  webp」や [".png", "jpg"] → [".png", ".jpg", ".webp"]。拡張子として使えない文字のものは捨てる。"""
+    items = re.split(r"[\s,;、，；]+", value) if isinstance(value, str) else [str(v) for v in value]
+    out = []
+    for item in items:
+        e = "." + item.strip().lstrip(".").lower()
+        if re.fullmatch(r"\.[a-z0-9]{1,10}", e) and e not in out:
+            out.append(e)
+    return out[:50]
 
 
 def normalize(cfg: dict) -> dict:
@@ -144,6 +182,17 @@ def normalize(cfg: dict) -> dict:
                 l[key] = DEFAULT_LAUNCHER[key]
         l["keep_rotation"] = bool(l["keep_rotation"])
         l["on_top"], l["dnd_on_top"] = bool(l["on_top"]), bool(l["dnd_on_top"])
+        l["dnd_on_launcher"] = bool(l["dnd_on_launcher"])
+        try:
+            l["dnd_warn_count"] = min(max(int(l["dnd_warn_count"]), 0), 999)
+        except (TypeError, ValueError):
+            l["dnd_warn_count"] = DEFAULT_LAUNCHER["dnd_warn_count"]
+        l["dnd_pick"] = bool(l["dnd_pick"])
+        exts = l["dnd_exts"] if isinstance(l["dnd_exts"], dict) else {}
+        l["dnd_exts"] = {k: parse_exts(exts[k]) if isinstance(exts.get(k), (list, str)) else list(DEFAULT_EXTS[k])
+                         for k in DND_KINDS}
+        if l["dnd_resize"] not in DND_RESIZE:
+            l["dnd_resize"] = DEFAULT_LAUNCHER["dnd_resize"]
         try:
             w, h = (int(v) for v in l["dnd_size"])
             l["dnd_size"] = [min(max(w, 0), 4000), min(max(h, 0), 4000)]
@@ -191,6 +240,18 @@ def normalize(cfg: dict) -> dict:
     cfg["colors"] = {str(k): v.lower() for k, v in colors.items() if isinstance(v, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", v)}
     if cfg["animation"] not in ANIMATIONS:
         cfg["animation"] = "full"
+    add, default = cfg["obs"]["add"] if isinstance(cfg["obs"].get("add"), dict) else {}, DEFAULTS["obs"]["add"]
+    for key in ("visible", "mute", "loop", "restart", "fit"):
+        add[key] = bool(add.get(key, default[key]))
+    for key, allowed in (("media_start", ADD_MEDIA_START), ("monitor", ADD_MONITOR), ("name", ADD_NAME)):
+        if add.get(key) not in allowed:
+            add[key] = default[key]
+    add["loop_exts"] = parse_exts(add["loop_exts"]) if isinstance(add.get("loop_exts"), (list, str)) else []
+    try:
+        add["volume_db"] = round(min(max(float(add["volume_db"]), -100.0), 0.0), 1)
+    except (KeyError, TypeError, ValueError):
+        add["volume_db"] = default["volume_db"]
+    cfg["obs"]["add"] = add
     return cfg
 
 

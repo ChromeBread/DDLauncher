@@ -4,9 +4,12 @@
 
 給實況主使用的輕量常駐啟動器（Windows）。可以小小地放在畫面角落。
 
+> [!TIP]
+> **即使 OBS 以系統管理員權限執行，也能拖放檔案來新增來源。**
+> 一般來說，OBS 以系統管理員權限執行時，Windows 會擋下從檔案總管拖放的操作。DDLauncher 會接收拖放到啟動器上的檔案，再透過 obs-websocket 交給 OBS，因此不受這個限制。
+
 - 依照設定的順序，間隔一段時間自動啟動 OBS 等應用程式。已在執行中的應用程式不會重複啟動。
 - 用指示燈的顏色顯示各應用程式是否執行中、是否以系統管理員權限執行。
-- **即使 OBS 以系統管理員權限執行，也能拖放檔案來新增來源**（透過 obs-websocket）。
 - 平常只在角落放一個小圖示，滑鼠移上去時才展開。
 
 <p>
@@ -27,33 +30,17 @@
 
 | 版本 | 檔案 | 適合 |
 |---|---|---|
-| 安裝版 | `DDLauncher-0.1.0-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
-| 免安裝版 | `DDLauncher-0.1.0-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
+| 安裝版 | `DDLauncher-0.2.0-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
+| 免安裝版 | `DDLauncher-0.2.0-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
 
 - 免安裝版：把 zip 解壓縮到任意位置，執行 `DDLauncher.exe`。
-- 因為 exe 沒有簽章，第一次啟動時 Windows SmartScreen（「Windows 已保護您的電腦」）或防毒軟體可能會警告。點「其他資訊」→「仍要執行」即可啟動。若想先確認內容，請依下方「從原始碼執行」使用。
+- 因為 exe 沒有簽章，第一次啟動時 Windows SmartScreen（「Windows 已保護您的電腦」）或防毒軟體可能會警告。點「其他資訊」→「仍要執行」即可啟動。若想先確認內容，請依下方「開發者資訊」中的「從原始碼執行」使用。
 - 兩個版本的設定都存放在 `%APPDATA%\CBApps\DDLauncher\`。
 
-### 從原始碼執行
-
-```powershell
-py -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\pythonw main.py
-```
-
-製作資料夾版（`dist\DDLauncher\`）與安裝程式時（安裝程式需要 Inno Setup 6）：
-
-```powershell
-.venv\Scripts\pip install pyinstaller
-.venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
-```
-
-### OBS 端的準備
+## OBS 端的準備
 
 1. 在 OBS 的「工具」→「WebSocket 伺服器設定」中，開啟「啟用 WebSocket 伺服器」。
-2. 記下連接埠（預設 4455）與密碼，填入啟動器的 ⚙ →「一般 / OBS」。
+2. 記下連接埠與密碼，填入啟動器的 ⚙ →「一般 / OBS」。
 
 ## 使用方式
 
@@ -92,9 +79,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 
 ### D&D 模式
 
-- 把圖片、影片、音訊檔案拖放到啟動器上，就會新增為 OBS 指定場景（留空則為目前的節目場景）的來源。
+- 把圖片、影片、音訊檔案拖放到 D&D 區（或啟動器）上，就會新增為 OBS 指定場景（留空則為目前的節目場景）的來源。拖放到啟動器的功能可用 ⚙ →「拖放到啟動器」關閉。一次拖放很多檔案（預設 5 個以上）時，會在新增前先確認；數量可在 ⚙ →「一次拖放多個檔案時確認」更改。開啟 ⚙ →「資料夾・多種檔案的拖放」後，可以整個資料夾拖放，並選擇要讀取圖片、影片或音樂；也能依種類指定要讀取的副檔名。在 ⚙ →「以 D&D 新增的來源」可以設定新增來源的顯示 / 隱藏、播放 / 停止（也可只播放第一個檔案）、音量、靜音、循環、音訊監聽、是否符合畫面，以及來源名稱的取法。
+  - 「符合畫面」與 **Image Resize Reader for OBS**：若有使用 Image Resize Reader，請關閉「符合畫面」。從 DDLauncher 新增的來源也會被 Image Resize Reader 調整，兩者都開啟時位置會偏移或超出畫面。
 - D&D 模式中會忽略邊距，貼齊畫面邊緣（避免檔案掉進空隙而拖放到別的視窗）。可用 ⚙ →「D&D 時的位置」關閉。
-- D&D 區域會緊貼在啟動器旁邊出現，但不會蓋住啟動器。拖曳離啟動器較遠那個角的斜線可調整大小，拖曳其他地方可移動位置。大小與位置會被記住；移到會蓋住啟動器的地方時，會移到緊貼啟動器最近一邊的位置。按右鍵可以恢復原本大小或放回啟動器旁邊。
+- D&D 區域會緊貼在啟動器旁邊出現，但不會蓋住啟動器。拖曳四個角的斜線可調整大小，拖曳其他地方可移動位置（在 ⚙ →「D&D 區的大小調整」可設定成從四條邊也能調整）。大小與位置會被記住；移到會蓋住啟動器的地方時，會移到緊貼啟動器最近一邊的位置。按右鍵可以恢復原本大小或放回啟動器旁邊。找不到時，可用 ⚙ 的「把 D&D 區以預設大小放回啟動器旁」放回來。
 
 ### 畫面的看法
 
@@ -108,9 +96,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
   - 「圖示圖片」留空時使用 exe 的圖示，路徑為 URL 時使用網站圖示。在圖示圖片填入網址，會使用該網站的圖示（若是圖片網址則使用該圖片）。
   - 刪除的列可用「復原」（Ctrl+Z）還原。表格下方的時間軸會顯示各應用程式在開始後幾秒啟動。
   - 選擇「啟動後移至的螢幕」後，啟動後會把視窗移到該螢幕。以系統管理員權限啟動的應用程式因 Windows 的限制無法移動。
-- **連接埠管理**：登錄使用的連接埠後，會顯示空閒／使用中／衝突（由非預期程序使用，或重複登錄）。「釋放」會結束正在使用該連接埠的程序（會先確認）。「自動取得」可以加入登錄的應用程式使用的連接埠（OBS 從 WebSocket 設定讀取，其他應用程式則在執行中時取得）。OneComme 與 BouyomiChan 也會從設定讀取，所以沒開啟也找得到；Yukarinette Connector NEO 則在執行中時取得。可以從找到的連接埠中選擇要新增的項目；若 OneComme 傳送的連接埠與 BouyomiChan 不一致，會提醒你。也可以備註這台電腦的 IP 位址是固定還是浮動。按「自動判定」只會確認有線／Wi-Fi 是否自動取得 IP 位址（DHCP）並填入，不會取得 IP 位址本身。路由器端的 DHCP 保留在自動判定中會顯示為「浮動」。
+- **連接埠管理**：登錄使用的連接埠後，會顯示空閒／使用中／衝突（由非預期程序使用，或重複登錄）。「釋放」會結束正在使用該連接埠的程序（會先確認）。「自動取得」可以加入登錄的應用程式使用的連接埠（OBS 從 WebSocket 設定讀取，其他應用程式則在執行中時取得）。部分實況常用的留言檢視器與朗讀軟體會從設定檔讀取，所以沒開啟也找得到。可以從找到的連接埠中選擇要新增的項目；若互相連動的應用程式之間連接埠不一致，會提醒你。也可以備註這台電腦的 IP 位址是固定還是浮動。按「自動判定」只會確認有線／Wi-Fi 是否自動取得 IP 位址（DHCP）並填入，不會取得 IP 位址本身。路由器端的 DHCP 保留在自動判定中會顯示為「浮動」。
 - **色彩編輯器**：可選擇不透明度、配色（預設 / 自訂）與 6 種範本。變更的顏色會立即反映在啟動器上，按取消即還原。
 - **資訊**：顯示語言、版本、建置日期、開發者標示，以及 Debug Mode 的切換。
+  - **Debug Mode**：設定的匯出 / 匯入等。
 
 ## 解除安裝
 
@@ -123,7 +112,6 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 - 設定儲存在 `%APPDATA%\CBApps\DDLauncher\`。若舊的儲存位置 `%APPDATA%\DDLauncher\` 有設定，第一次啟動時會自動複製過來。舊資料夾會保留，所以退回舊版本也能使用設定（複製後的變更不會反映到舊版本）。
 - 設定為系統管理員的應用程式，每次啟動都會出現 UAC 確認（開機啟動時也一樣）。
 - 有些應用程式會忽略「最小化啟動」。OBS 在「啟動選項」填入 `--minimize-to-tray` 比較可靠。
-- OBS 密碼以明文儲存在設定檔中。
 - 以系統管理員權限執行的優缺點、無法拖放的原因、黑畫面的處理方法，都整理在應用程式內的說明（`?`）中。
 
 ## 授權
@@ -131,6 +119,24 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 GPL-3.0（[LICENSE](LICENSE)）。隨附函式庫（PySide6 / Qt、obsws-python 等）的授權整理在 [THIRD-PARTY-LICENSES.txt](THIRD-PARTY-LICENSES.txt)。
 
 ## 開發者資訊
+
+### 從原始碼執行
+
+```powershell
+py -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pythonw main.py
+```
+
+製作資料夾版（`dist\DDLauncher\`）與安裝程式時（安裝程式需要 Inno Setup 6）：
+
+```powershell
+.venv\Scripts\pip install pyinstaller
+.venv\Scripts\pyinstaller DDLauncher.spec
+iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+```
+
+### 檔案結構
 
 | 檔案 | 用途 |
 |---|---|
@@ -144,6 +150,7 @@ GPL-3.0（[LICENSE](LICENSE)）。隨附函式庫（PySide6 / Qt、obsws-python 
 | `about.py` | 建置日期（exe 由 `DDLauncher.spec` 寫入）與各語言的日期寫法 |
 | `theme.py` / `settings_dialog.py` | 外觀、設定畫面 |
 | `uninstaller.py` | 安全解除安裝程式（`DDLauncher-Uninstall.exe`） |
+| `startup_items.py` | 讀寫 Windows 開機啟動項目（登錄的 Run 與啟動資料夾，變更前先備份） |
 
 - **權限分離**：啟動器本身以一般權限執行。它接收來自檔案總管的拖放，再透過 localhost 的 WebSocket 把檔案路徑傳給以系統管理員權限執行的 OBS。WebSocket 連線不受 UIPI 限制，即使權限不同也能傳到。
 - **多個啟動器**：設定檔中的 `launchers` 是陣列。每多一個元素就會多建立一個視窗（目前無法從設定畫面新增，請直接編輯 JSON）。

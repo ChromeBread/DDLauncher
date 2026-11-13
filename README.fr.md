@@ -4,9 +4,12 @@
 
 Un lanceur léger pour streamers, qui reste discrètement dans un coin de l'écran (Windows).
 
+> [!TIP]
+> **Ajoutez des sources à OBS par glisser-déposer, même quand OBS tourne en administrateur.**
+> D'habitude, quand OBS tourne en administrateur, Windows bloque le glisser-déposer depuis l'Explorateur. DDLauncher reçoit les fichiers déposés sur le lanceur et les transmet à OBS via obs-websocket : cette restriction ne s'applique donc pas.
+
 - Lance OBS et vos autres applis dans l'ordre choisi, avec un délai entre chacune. Une appli déjà lancée ne l'est pas deux fois.
 - Un voyant de couleur indique si chaque appli tourne, et si elle tourne en administrateur.
-- **Ajoutez des sources à OBS par glisser-déposer, même quand OBS tourne en administrateur** (via obs-websocket).
 - En temps normal, seule une petite icône reste dans le coin ; le lanceur ne s'ouvre qu'au survol.
 
 <p>
@@ -27,33 +30,17 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 | Version | Fichier | Pour qui |
 |---|---|---|
-| Installateur | `DDLauncher-0.1.0-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
-| Autonome | `DDLauncher-0.1.0-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
+| Installateur | `DDLauncher-0.2.0-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
+| Autonome | `DDLauncher-0.2.0-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
 
 - Version autonome : décompressez-la où vous voulez et lancez `DDLauncher.exe`.
-- L'exe n'est pas signé : au premier lancement, Windows SmartScreen (« Windows a protégé votre ordinateur ») ou votre antivirus peut afficher un avertissement. Cliquez sur « Informations complémentaires » → « Exécuter quand même ». Pour vérifier d'abord, lancez-le depuis les sources comme ci-dessous.
+- L'exe n'est pas signé : au premier lancement, Windows SmartScreen (« Windows a protégé votre ordinateur ») ou votre antivirus peut afficher un avertissement. Cliquez sur « Informations complémentaires » → « Exécuter quand même ». Pour vérifier d'abord, lancez-le depuis les sources (voir « Pour les développeurs » plus bas).
 - Les deux versions enregistrent les réglages dans `%APPDATA%\CBApps\DDLauncher\`.
 
-### Lancer depuis les sources
-
-```powershell
-py -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\pythonw main.py
-```
-
-Pour créer la version dossier (`dist\DDLauncher\`) et l'installateur (l'installateur nécessite Inno Setup 6) :
-
-```powershell
-.venv\Scripts\pip install pyinstaller
-.venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
-```
-
-### Préparer OBS
+## Préparer OBS
 
 1. Dans OBS, ouvrez « Outils » → « Paramètres du serveur WebSocket » et cochez « Activer le serveur WebSocket ».
-2. Notez le port (4455 par défaut) et le mot de passe, puis saisissez-les dans le lanceur sous ⚙ → « Général / OBS ».
+2. Notez le port et le mot de passe, puis saisissez-les dans le lanceur sous ⚙ → « Général / OBS ».
 
 ## Utilisation
 
@@ -92,9 +79,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 
 ### Mode D&D
 
-- Déposez des images, vidéos ou fichiers audio sur le lanceur pour les ajouter comme sources à la scène OBS choisie (la scène de programme actuelle si le champ est vide).
+- Déposez des images, vidéos ou fichiers audio sur l’espace D&D (ou sur le lanceur) pour les ajouter comme sources à la scène OBS choisie (la scène de programme actuelle si le champ est vide). Le dépôt sur le lanceur se désactive avec ⚙ → « Dépôt sur le lanceur ». Si vous déposez beaucoup de fichiers d’un coup (5 ou plus par défaut), il demande avant de les ajouter ; changez ce nombre avec ⚙ → « Confirmer les dépôts multiples ». Activez ⚙ → « Dossiers / fichiers mélangés » pour déposer des dossiers entiers et choisir les types à ajouter (images, vidéos, audio), ainsi que les extensions de chaque type. ⚙ → « Sources ajoutées par D&D » règle l’état des nouvelles sources : affichées ou masquées, en lecture ou à l’arrêt (ou seul le premier fichier en lecture), volume, sourdine, boucle, monitoring audio, ajustement à l’écran et nom de la source.
+  - « Ajuster à l’écran » et **Image Resize Reader for OBS** : si vous utilisez Image Resize Reader, laissez « Ajuster à l’écran » désactivé. Il ajuste aussi les sources ajoutées par DDLauncher, et avec les deux actifs la source se retrouve décalée ou coupée.
 - En mode D&D, le lanceur ignore la marge et se colle au bord de l'écran, pour qu'un fichier ne tombe pas dans le vide et n'atterrisse pas dans une autre fenêtre. Désactivez-le avec ⚙ → « Position en mode D&D ».
-- La zone D&D s’ouvre juste à côté du lanceur, collée sans jamais le recouvrir. Faites glisser le coin rayé (celui opposé au lanceur) pour changer sa taille, ou n’importe quel autre endroit pour la déplacer. Taille et position sont mémorisées ; déposée sur le lanceur, la zone glisse contre le bord du lanceur le plus proche. Un clic droit permet de rétablir la taille ou de la remettre à côté du lanceur.
+- La zone D&D s’ouvre juste à côté du lanceur, collée sans jamais le recouvrir. Faites glisser un coin rayé pour changer sa taille, ou n’importe quel autre endroit pour la déplacer (⚙ → « Redimensionner l'espace D&D » permet aussi de la redimensionner par les bords). Taille et position sont mémorisées ; déposée sur le lanceur, la zone glisse contre le bord du lanceur le plus proche. Un clic droit permet de rétablir la taille ou de la remettre à côté du lanceur. Si vous la perdez de vue, utilisez « Remettre l'espace D&D à côté du lanceur (taille par défaut) » dans ⚙.
 
 ### Lire l'affichage
 
@@ -108,9 +96,10 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
   - Si « Image d'icône » est vide, l'icône de l'exe est utilisée, ou celle du site quand le chemin est une URL. Mettez une adresse web dans « Image d'icône » pour utiliser l'icône de ce site (ou l'image elle-même, pour l'adresse d'une image).
   - Une ligne supprimée revient avec « Annuler la suppression » (Ctrl+Z). La chronologie sous le tableau montre combien de secondes après le début chaque appli se lance.
   - « Écran de destination » déplace la fenêtre de l'appli vers cet écran après le lancement. Les applis lancées en administrateur ne peuvent pas être déplacées à cause d'une restriction de Windows.
-- **Ports** : enregistrez vos ports pour voir s'ils sont libres, utilisés ou en conflit (utilisés par un processus inattendu, ou enregistrés deux fois). « Libérer » ferme le processus qui utilise ce port (après confirmation). « Détecter » ajoute les ports utilisés par vos applis (OBS depuis ses paramètres WebSocket, les autres quand elles tournent). OneComme et BouyomiChan sont aussi lus dans leurs réglages, donc trouvés même fermés ; Yukarinette Connector NEO est trouvé pendant qu’il tourne. Vous choisissez les ports à ajouter, et un avertissement s’affiche si OneComme envoie vers un autre port que celui de BouyomiChan. Vous pouvez aussi noter si l'adresse IP de ce PC est fixe ou dynamique ; « Vérifier » la remplit en regardant seulement si la connexion filaire / Wi-Fi utilise le DHCP. DDLauncher ne lit jamais l'adresse IP elle-même, et une réservation DHCP sur la box apparaît quand même comme dynamique.
+- **Ports** : enregistrez vos ports pour voir s'ils sont libres, utilisés ou en conflit (utilisés par un processus inattendu, ou enregistrés deux fois). « Libérer » ferme le processus qui utilise ce port (après confirmation). « Détecter » ajoute les ports utilisés par vos applis (OBS depuis ses paramètres WebSocket, les autres quand elles tournent). Certains lecteurs de commentaires et logiciels de synthèse vocale courants chez les streamers sont lus dans leurs fichiers de réglages, donc trouvés même fermés. Vous choisissez les ports à ajouter, et un avertissement s’affiche si deux applis reliées ne sont pas d’accord sur un port. Vous pouvez aussi noter si l'adresse IP de ce PC est fixe ou dynamique ; « Vérifier » la remplit en regardant seulement si la connexion filaire / Wi-Fi utilise le DHCP. DDLauncher ne lit jamais l'adresse IP elle-même, et une réservation DHCP sur la box apparaît quand même comme dynamique.
 - **Éditeur de couleurs** : opacité, couleurs (par défaut / personnalisées) et six modèles. Les changements s'appliquent tout de suite au lanceur, et Annuler les rétablit.
 - **Infos** : langue de l'interface, version, date de compilation, nom du développeur et interrupteur Debug Mode.
+  - **Debug Mode** : export / import des paramètres, entre autres.
 
 ## Désinstallation
 
@@ -123,7 +112,6 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 - Les paramètres sont enregistrés dans `%APPDATA%\CBApps\DDLauncher\`. S'il existe des paramètres dans l'ancien emplacement `%APPDATA%\DDLauncher\`, ils sont copiés automatiquement au premier lancement. L'ancien dossier est conservé : une version précédente continue donc de fonctionner avec (les changements faits après la copie ne s'y reportent pas).
 - Les applis réglées en admin affichent une confirmation UAC à chaque lancement (au démarrage de Windows aussi).
 - Certaines applis ignorent « Lancer réduit ». Pour OBS, mettre `--minimize-to-tray` dans « Options de lancement » est plus fiable.
-- Le mot de passe OBS est stocké en clair dans le fichier de paramètres.
 - L'aide intégrée (`?`) détaille les avantages et inconvénients du mode administrateur, pourquoi le glisser-déposer ne marche plus, et comment régler les écrans noirs.
 
 ## Licence
@@ -131,6 +119,24 @@ iscc /DAppVersion=0.1.0 installer\DDLauncher.iss
 GPL-3.0 ([LICENSE](LICENSE)). Les licences des bibliothèques incluses (PySide6 / Qt, obsws-python, etc.) sont dans [THIRD-PARTY-LICENSES.txt](THIRD-PARTY-LICENSES.txt).
 
 ## Pour les développeurs
+
+### Lancer depuis les sources
+
+```powershell
+py -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pythonw main.py
+```
+
+Pour créer la version dossier (`dist\DDLauncher\`) et l'installateur (l'installateur nécessite Inno Setup 6) :
+
+```powershell
+.venv\Scripts\pip install pyinstaller
+.venv\Scripts\pyinstaller DDLauncher.spec
+iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+```
+
+### Fichiers
 
 | Fichier | Rôle |
 |---|---|
@@ -144,6 +150,7 @@ GPL-3.0 ([LICENSE](LICENSE)). Les licences des bibliothèques incluses (PySide6 
 | `about.py` | Date de compilation (écrite dans l'exe par `DDLauncher.spec`) et format de date de chaque langue |
 | `theme.py` / `settings_dialog.py` | Apparence, fenêtre des paramètres |
 | `uninstaller.py` | Désinstalleur sûr (`DDLauncher-Uninstall.exe`) |
+| `startup_items.py` | Lecture et modification des entrées de démarrage de Windows (Run du Registre et dossier Démarrage ; sauvegarde avant modification) |
 
 - **Séparation des droits** : le lanceur tourne avec les droits normaux. Il reçoit les dépôts de l'Explorateur et transmet les chemins des fichiers à OBS (lancé en administrateur) via le WebSocket local. Le trafic WebSocket n'est pas limité par l'UIPI : il passe malgré la différence de droits.
 - **Plusieurs lanceurs** : `launchers` dans le fichier de paramètres est un tableau. Chaque élément crée une fenêtre (pas encore possible depuis la fenêtre des paramètres : modifiez le JSON directement).

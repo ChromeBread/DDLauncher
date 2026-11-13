@@ -5,6 +5,7 @@
 </style>
 
 <h2>표시 보는 법</h2>
+<p><img src="img/status.png" width="480"></p>
 <ul>
  <li>테두리·램프 <b>회색</b>: 정지 / 미설정</li>
  <li><b>초록</b>: 실행 중 (일반 권한)</li>
@@ -43,6 +44,7 @@ D&amp;D 모드 중과 실행 시퀀스 중에는 펼친 상태를 유지합니�
 </ul>
 
 <h2>왜 드래그 앤 드롭을 할 수 없게 되나요</h2>
+<p><img src="img/dnd_uipi.png" width="480"></p>
 <p>Windows에는 UIPI (User Interface Privilege Isolation)라는 구조가 있어,
 <b>권한이 낮은 프로세스에서 높은 프로세스로 가는 창 메시지를 차단</b>합니다.
 탐색기는 일반 권한, OBS는 관리자 권한이므로 드롭 조작 (OLE D&amp;D / WM_DROPFILES)이
@@ -53,6 +55,7 @@ OBS에 닿지 않고 "금지" 커서가 됩니다. 탐색기를 관리자로 실
 <p>※ 런처 자체를 관리자로 실행하면 같은 이유로 D&amp;D를 쓸 수 없습니다 (헤더에 ⚠ADMIN 표시).</p>
 
 <h2>게임 캡처와 윈도우 캡처의 차이</h2>
+<p><img src="img/capture.png" width="480"></p>
 <table border="1" cellspacing="0" cellpadding="4">
  <tr><th></th><th>게임 캡처</th><th>윈도우 캡처</th></tr>
  <tr><td>구조</td>
@@ -93,6 +96,7 @@ OBS에 닿지 않고 "금지" 커서가 됩니다. 탐색기를 관리자로 실
 </ul>
 
 <h2>실행 시퀀스</h2>
+<p><img src="img/sequence.png" width="480"></p>
 <ul>
  <li>설정의 순서대로 "이전 앱을 실행한 뒤 대기 초 후"에 실행합니다. 이미 실행 중인 앱은 두 번 실행하지 않습니다.</li>
  <li>DAW나 VB-Audio (VoiceMeeter 등)는 마지막에 두고 대기를 길게 하면 오디오 장치 쟁탈을 피하기 쉽습니다.</li>
@@ -102,6 +106,7 @@ OBS에 닿지 않고 "금지" 커서가 됩니다. 탐색기를 관리자로 실
 </ul>
 
 <h2>실행할 모니터 지정</h2>
+<p><img src="img/monitor.png" width="480"></p>
 <ul>
  <li>설정의 "실행 후 이동할 모니터" 열에서 고르면, 실행 후 창이 나타나기를 최대 30초 기다려 그 모니터로 옮깁니다 (모니터 안의 상대 위치·최소화/최대화는 유지).</li>
  <li><b>관리자 권한으로 실행한 앱은 옮길 수 없습니다</b> (UIPI 때문에 일반 권한 런처에서 조작 불가).
@@ -110,6 +115,7 @@ OBS에 닿지 않고 "금지" 커서가 됩니다. 탐색기를 관리자로 실
 </ul>
 
 <h2>포트 관리</h2>
+<p><img src="img/ports.png" width="480"></p>
 <ul>
  <li>OBS WebSocket (4455)이나 채팅 뷰어·연동 도구가 쓰는 포트를 등록해 두면 사용 상황을 확인할 수 있습니다.</li>
  <li><b>비어 있음</b> (회색) / <b>사용 중</b> (초록: 예상 프로세스가 사용) / <b>충돌</b> (빨강: 예상 밖의 프로세스가 사용·중복 등록).</li>
@@ -119,5 +125,6 @@ OBS에 닿지 않고 "금지" 커서가 됩니다. 탐색기를 관리자로 실
 </ul>
 
 <h2>OBS 쪽 설정</h2>
+<p><img src="img/obs_websocket.png" width="480"></p>
 <p>OBS 메뉴 "도구" → "WebSocket 서버 설정"에서 활성화하고, 포트와 비밀번호를
 DDLauncher 설정의 "일반 / OBS"에 입력하세요.</p>

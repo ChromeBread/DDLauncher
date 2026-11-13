@@ -160,8 +160,11 @@ def _monitor_info(hmon) -> dict:
             "work": (w.left, w.top, w.right, w.bottom), "primary": bool(info.dwFlags & MONITORINFOF_PRIMARY)}
 
 
-def monitors() -> list[dict]:
-    """[{name: '\\\\.\\DISPLAY1', rect, work, primary}, ...]（物理ピクセル）"""
+def monitors(labels: bool = False) -> list[dict]:
+    """[{name: '\\\\.\\DISPLAY1', label, rect, work, primary}, ...]（物理ピクセル）。
+
+    labels=True のときだけ、label に製品名（例: PL2374HD）を入れる（取れなければ ""）。ウィンドウを動かすときは要らないので省く。
+    """
     out = []
 
     def cb(hmon, _hdc, _rect, _lp):
@@ -169,7 +172,78 @@ def monitors() -> list[dict]:
         return True
 
     _user32.EnumDisplayMonitors(None, None, _MONITORENUMPROC(cb), 0)
+    names = monitor_labels() if labels else {}
+    for m in out:
+        m["label"] = names.get(m["name"], "")
     return out
+
+
+# ---- モニタの製品名（DisplayConfig API。モニタの EDID に入っている名前） ----
+
+class _LUID(ctypes.Structure):
+    _fields_ = [("LowPart", wintypes.DWORD), ("HighPart", wintypes.LONG)]
+
+
+class _PATH_SOURCE(ctypes.Structure):
+    _fields_ = [("adapterId", _LUID), ("id", ctypes.c_uint32), ("modeInfoIdx", ctypes.c_uint32), ("statusFlags", ctypes.c_uint32)]
+
+
+class _PATH_TARGET(ctypes.Structure):
+    _fields_ = [("adapterId", _LUID), ("id", ctypes.c_uint32), ("modeInfoIdx", ctypes.c_uint32),
+                ("outputTechnology", ctypes.c_uint32), ("rotation", ctypes.c_uint32), ("scaling", ctypes.c_uint32),
+                ("refreshNum", ctypes.c_uint32), ("refreshDen", ctypes.c_uint32), ("scanLineOrdering", ctypes.c_uint32),
+                ("targetAvailable", wintypes.BOOL), ("statusFlags", ctypes.c_uint32)]
+
+
+class _PATH_INFO(ctypes.Structure):
+    _fields_ = [("sourceInfo", _PATH_SOURCE), ("targetInfo", _PATH_TARGET), ("flags", ctypes.c_uint32)]
+
+
+class _DEVICE_INFO_HEADER(ctypes.Structure):
+    _fields_ = [("type", ctypes.c_uint32), ("size", ctypes.c_uint32), ("adapterId", _LUID), ("id", ctypes.c_uint32)]
+
+
+class _SOURCE_NAME(ctypes.Structure):
+    _fields_ = [("header", _DEVICE_INFO_HEADER), ("viewGdiDeviceName", wintypes.WCHAR * 32)]
+
+
+class _TARGET_NAME(ctypes.Structure):
+    _fields_ = [("header", _DEVICE_INFO_HEADER), ("flags", ctypes.c_uint32), ("outputTechnology", ctypes.c_uint32),
+                ("edidManufactureId", ctypes.c_uint16), ("edidProductCodeId", ctypes.c_uint16),
+                ("connectorInstance", ctypes.c_uint32), ("monitorFriendlyDeviceName", wintypes.WCHAR * 64),
+                ("monitorDevicePath", wintypes.WCHAR * 128)]
+
+
+_MODE_INFO_SIZE = 64   # DISPLAYCONFIG_MODE_INFO（中身は使わないので大きさだけ合わせる）
+QDC_ONLY_ACTIVE_PATHS = 2
+_GET_SOURCE_NAME, _GET_TARGET_NAME = 1, 2
+
+
+def monitor_labels() -> dict[str, str]:
+    """{'\\\\.\\DISPLAY1': 'PL2374HD', ...}。取れなかったモニタは入らない。失敗しても空を返すだけ。"""
+    try:
+        n_paths, n_modes = ctypes.c_uint32(), ctypes.c_uint32()
+        if _user32.GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, ctypes.byref(n_paths), ctypes.byref(n_modes)) != 0:
+            return {}
+        paths = (_PATH_INFO * max(n_paths.value, 1))()
+        modes = ctypes.create_string_buffer(_MODE_INFO_SIZE * max(n_modes.value, 1))
+        if _user32.QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, ctypes.byref(n_paths), paths,
+                                      ctypes.byref(n_modes), modes, None) != 0:
+            return {}
+        out = {}
+        for p in paths[:n_paths.value]:
+            src = _SOURCE_NAME()
+            src.header = _DEVICE_INFO_HEADER(_GET_SOURCE_NAME, ctypes.sizeof(src), p.sourceInfo.adapterId, p.sourceInfo.id)
+            tgt = _TARGET_NAME()
+            tgt.header = _DEVICE_INFO_HEADER(_GET_TARGET_NAME, ctypes.sizeof(tgt), p.targetInfo.adapterId, p.targetInfo.id)
+            if (_user32.DisplayConfigGetDeviceInfo(ctypes.byref(src)) == 0
+                    and _user32.DisplayConfigGetDeviceInfo(ctypes.byref(tgt)) == 0):
+                label = tgt.monitorFriendlyDeviceName.strip()
+                if label and src.viewGdiDeviceName not in out:   # 複製表示（同じ画面を 2 台）は最初の 1 台の名前
+                    out[src.viewGdiDeviceName] = label
+        return out
+    except (OSError, AttributeError, ValueError):
+        return {}
 
 
 def find_windows(proc: str) -> list[int]:

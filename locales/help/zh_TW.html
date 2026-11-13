@@ -5,6 +5,7 @@
 </style>
 
 <h2>畫面的看法</h2>
+<p><img src="img/status.png" width="480"></p>
 <ul>
  <li>外框・指示燈 <b>灰色</b>：已停止／未設定</li>
  <li><b>綠色</b>：執行中（一般權限）</li>
@@ -42,6 +43,7 @@ D&amp;D 模式中與啟動序列執行中會保持展開。</p>
 </ul>
 
 <h2>為什麼無法拖放</h2>
+<p><img src="img/dnd_uipi.png" width="480"></p>
 <p>Windows 有一種叫做 UIPI（User Interface Privilege Isolation）的機制，
 會<b>阻擋權限較低的程序傳給權限較高的程序的視窗訊息</b>。
 檔案總管是一般權限，OBS 是系統管理員權限，因此拖放操作（OLE D&amp;D／WM_DROPFILES）
@@ -52,6 +54,7 @@ D&amp;D 模式中與啟動序列執行中會保持展開。</p>
 <p>※ 若以系統管理員身分執行啟動器本身，基於相同原因無法使用 D&amp;D（標題列會顯示 ⚠ADMIN）。</p>
 
 <h2>遊戲擷取與視窗擷取的差異</h2>
+<p><img src="img/capture.png" width="480"></p>
 <table border="1" cellspacing="0" cellpadding="4">
  <tr><th></th><th>遊戲擷取</th><th>視窗擷取</th></tr>
  <tr><td>原理</td>
@@ -92,6 +95,7 @@ D&amp;D 模式中與啟動序列執行中會保持展開。</p>
 </ul>
 
 <h2>啟動序列</h2>
+<p><img src="img/sequence.png" width="480"></p>
 <ul>
  <li>依設定中的順序，在「上一個應用程式啟動後 等待秒數 後」啟動。已在執行中的應用程式不會重複啟動。</li>
  <li>DAW 或 VB-Audio（VoiceMeeter 等）放在最後並把等待時間拉長，比較能避免搶奪音訊裝置。</li>
@@ -101,6 +105,7 @@ D&amp;D 模式中與啟動序列執行中會保持展開。</p>
 </ul>
 
 <h2>指定啟動後的螢幕</h2>
+<p><img src="img/monitor.png" width="480"></p>
 <ul>
  <li>在設定的「啟動後移至的螢幕」欄選擇後，啟動後最多等待 30 秒讓視窗出現，再移到該螢幕（保持螢幕內的相對位置與最小化／最大化狀態）。</li>
  <li><b>以系統管理員權限啟動的應用程式無法移動</b>（因 UIPI，一般權限的啟動器無法操作）。
@@ -109,6 +114,7 @@ D&amp;D 模式中與啟動序列執行中會保持展開。</p>
 </ul>
 
 <h2>連接埠管理</h2>
+<p><img src="img/ports.png" width="480"></p>
 <ul>
  <li>登錄 OBS WebSocket（4455）或留言檢視器・連動工具使用的連接埠，即可確認使用狀況。</li>
  <li><b>空閒</b>（灰）／<b>使用中</b>（綠：由預期程序使用）／<b>衝突</b>（紅：由非預期程序使用・重複登錄）。</li>
@@ -118,5 +124,6 @@ D&amp;D 模式中與啟動序列執行中會保持展開。</p>
 </ul>
 
 <h2>OBS 端的設定</h2>
+<p><img src="img/obs_websocket.png" width="480"></p>
 <p>在 OBS 選單「工具」→「WebSocket 伺服器設定」中啟用，並把連接埠與密碼
 填入 DDLauncher 設定的「一般 / OBS」。</p>

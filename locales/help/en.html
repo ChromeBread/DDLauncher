@@ -5,6 +5,7 @@
 </style>
 
 <h2>Reading the display</h2>
+<p><img src="img/status.png" width="480"></p>
 <ul>
  <li>Frame / lamp <b>gray</b>: stopped / not set</li>
  <li><b>Green</b>: running (normal rights)</li>
@@ -42,6 +43,7 @@ Right-click the launcher's empty area for the menu (position, sequence, settings
 </ul>
 
 <h2>Why drag &amp; drop stops working</h2>
+<p><img src="img/dnd_uipi.png" width="480"></p>
 <p>Windows has a mechanism called UIPI (User Interface Privilege Isolation) that
 <b>blocks window messages from a lower-privilege process to a higher-privilege one</b>.
 Explorer runs with normal rights and OBS as administrator, so the drop (OLE D&amp;D / WM_DROPFILES)
@@ -52,6 +54,7 @@ Network connections aren't covered by UIPI, so they reach OBS safely even with d
 <p>Note: if you start the launcher itself as administrator, D&amp;D won't work for the same reason (the header shows ⚠ADMIN).</p>
 
 <h2>Game Capture vs. Window Capture</h2>
+<p><img src="img/capture.png" width="480"></p>
 <table border="1" cellspacing="0" cellpadding="4">
  <tr><th></th><th>Game Capture</th><th>Window Capture</th></tr>
  <tr><td>How it works</td>
@@ -92,6 +95,7 @@ Network connections aren't covered by UIPI, so they reach OBS safely even with d
 </ul>
 
 <h2>Launch sequence</h2>
+<p><img src="img/sequence.png" width="480"></p>
 <ul>
  <li>Starts apps in the order set in the settings, each one "delay seconds after the previous app was started". Apps already running are not started twice.</li>
  <li>Put DAWs and VB-Audio (VoiceMeeter etc.) last with a longer delay to avoid them fighting over audio devices.</li>
@@ -101,6 +105,7 @@ Network connections aren't covered by UIPI, so they reach OBS safely even with d
 </ul>
 
 <h2>Choosing the monitor</h2>
+<p><img src="img/monitor.png" width="480"></p>
 <ul>
  <li>When you choose one in the "Move to monitor" column, the launcher waits up to 30 seconds for the window to appear and moves it to that monitor (keeping its relative position and minimized / maximized state).</li>
  <li><b>Apps started as administrator can't be moved</b> (UIPI prevents the normal-rights launcher from controlling them).
@@ -109,6 +114,7 @@ Network connections aren't covered by UIPI, so they reach OBS safely even with d
 </ul>
 
 <h2>Ports</h2>
+<p><img src="img/ports.png" width="480"></p>
 <ul>
  <li>Register the ports used by OBS WebSocket (4455), comment viewers and integration tools to check their status.</li>
  <li><b>Free</b> (gray) / <b>In use</b> (green: used by the expected process) / <b>Conflict</b> (red: used by an unexpected process, or registered twice).</li>
@@ -118,5 +124,6 @@ Network connections aren't covered by UIPI, so they reach OBS safely even with d
 </ul>
 
 <h2>OBS settings</h2>
+<p><img src="img/obs_websocket.png" width="480"></p>
 <p>In OBS, enable it under "Tools" → "WebSocket Server Settings", then enter the port and password
 in DDLauncher's settings under "General / OBS".</p>
