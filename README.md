@@ -42,6 +42,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 1. In OBS, open "Tools" → "WebSocket Server Settings" and turn on "Enable WebSocket server".
 2. Note the port and the password, and enter them in the launcher under ⚙ → "General / OBS".
 
+<p><img src="locales/help/img/obs_websocket.png" alt="Copy the OBS WebSocket port and password into DDLauncher" width="480"></p>
+
 ## How to use
 
 ### Basics
@@ -60,9 +62,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
   - **Always expanded**: stays open regardless of the mouse.
   - In D&D mode and during the launch sequence, it stays open either way (to show the drop target and the countdown).
 - **Layout** (⚙ → "General")
-  - **LINEAR**: not available yet (still being tuned).
   - **GROUP**: a column going up (or down) from the corner. With "GROUP: max down" set, the rest start a new column further in; "GROUP: max across" caps the number of columns (the columns grow taller instead). 0 = unlimited (a single column).
-  - In both layouts, the mouse wheel (or ▲▼) rotates the order like a ring. Turn on "Rotated order" to keep the rotated order.
+  - The mouse wheel (or ▲▼) rotates the order like a ring. Turn on "Rotated order" to keep the rotated order.
 - **Category**: apps in the same category stack into one slot, and the rest slide out sideways toward the inside of the screen on mouse-over (e.g. register YouTube → Twitch → Kick in a "Platforms" category). Shift+wheel (or tilting the wheel) on the stacked tile, or the ◀▶ buttons on the slid-out row, change which app is in front.
 - **Size**: **Ctrl+mouse wheel** on the launcher, or "Size" under ⚙ → "General", sets it between 50 and 250%. If it would no longer fit on the screen, it shrinks automatically.
 - **Collapsed icon**: by default the `DD` icon. Under ⚙ → "General" you can show the icon of one of your registered apps or web pages instead.
@@ -70,6 +71,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 - **Language**: choose under ⚙ → "Info" → "Language". The default "Auto" follows OBS's UI language (or Windows' if OBS's settings can't be found). Unsupported languages fall back to English.
 
 ### Launch sequence
+
+<p><img src="locales/help/img/sequence.png" alt="Launch sequence timeline" width="480"></p>
 
 - Starts apps in the order set in the settings, each one "delay seconds after the previous app was started". The tile of the next app blinks orange, with `NEXT ▸ name seconds` shown below.
 - Put DAWs and VB-Audio tools last with a longer delay so they don't fight over audio devices.
@@ -79,12 +82,18 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 
 ### D&D mode
 
+<p><img src="locales/help/img/dnd_uipi.png" alt="Drag & drop path when OBS runs as administrator" width="480"></p>
+
+Even when OBS runs as administrator and refuses drops from Explorer, dropping on DDLauncher still works: DDLauncher runs with normal rights and passes the file to OBS through obs-websocket.
+
 - Drop image, video or audio files on the D&D space (or the launcher) to add them as sources to the chosen OBS scene (the current program scene if left empty). Dropping on the launcher can be turned off with ⚙ → "Drop on launcher". If you drop many files at once (5 or more by default), it asks before adding them; change the number with ⚙ → "Confirm multiple drops". Turn on ⚙ → "Folders / mixed files" to drop whole folders and choose which kinds (images, videos, audio) to add, and to set the file extensions for each kind. ⚙ → "Sources added by D&D" sets how new sources start: shown or hidden, playing or stopped (or only the first file playing), volume, mute, loop, audio monitoring, fit to screen, and the source name. If a name is already used in OBS, it adds a number automatically, or you can have it ask (add with a number, rename, place the existing source, or skip).
-  - "Fit to screen" and **Image Resize Reader for OBS**: if you use Image Resize Reader, leave "Fit to screen" off. It also fits sources added by DDLauncher, and with both on the source ends up shifted or cut off.
+  - "Fit to screen" and **[Image Resize Reader for OBS](https://github.com/ChromeBread/Image-Resize-Reader-for-OBS/blob/main/README.md)** (an OBS script by the same developer that fits images and videos to the canvas the moment they are added): if you use it, leave "Fit to screen" off. It also fits sources added by DDLauncher, and with both on the source ends up shifted or cut off.
 - In D&D mode, the launcher ignores the margin and snaps to the screen edge, so a file can't fall into the gap and land in another window. Turn this off with ⚙ → "Position in D&D mode".
 - The D&D space opens right next to the launcher, touching it but never covering it. Drag a striped corner to change its size, or drag anywhere else to move it (⚙ → "D&D space resizing" lets you resize from the edges too). Size and position are remembered; if you drop it onto the launcher it slides to the nearest edge of the launcher. Right-click it to reset the size or put it back next to the launcher. If you lose track of it, use "Put the D&D space back next to the launcher (default size)" in ⚙.
 
 ### Reading the display
+
+<p><img src="locales/help/img/status.png" alt="Tile states" width="480"></p>
 
 - **Top right of a tile**: `ADMIN` = running as administrator, `USER` = running with normal rights, `STANDBY` = stopped, `NO PATH` = no path set
 - **Lamp colors**: gray = stopped, green = running (normal rights), orange = running (administrator), red = set to run as admin but running with normal rights
@@ -95,8 +104,10 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 - **Apps on the launcher**: drag rows (or use ↑↓) to reorder. Hover a column heading for an explanation.
   - If "Icon image" is empty, the exe's icon is used, or the site's icon when the path is a URL. Put a web address in "Icon image" to use that site's icon (or the image itself, for an image's address).
   - A removed row comes back with "Undo" (Ctrl+Z). The timeline under the table shows how many seconds after the start each app launches.
-  - "Move to monitor" moves the app's window to that monitor after it starts. Apps started as administrator can't be moved because of a Windows restriction.
-- **Ports**: register the ports you use to see whether each is free, in use, or in conflict (used by an unexpected process, or registered twice). "Free up" closes the process using that port (after a confirmation). "Detect" adds the ports your registered apps use (OBS from its WebSocket settings, other apps while they are running). Some comment viewers and text-to-speech tools popular with streamers are read from their settings files, so they are found even when closed. You choose which of the found ports to add, and it warns you if two linked apps disagree on a port. You can also note whether this PC's IP address is static or dynamic; "Check" fills it in by looking only at whether the wired / Wi-Fi connection uses DHCP. DDLauncher never reads the IP address itself, and a DHCP reservation on your router still shows as dynamic.
+  - "Move to monitor" moves the app's window to that monitor after it starts. Apps started as administrator can't be moved because of a Windows restriction.<br>
+    <img src="locales/help/img/monitor.png" alt="Moving a window to another monitor" width="480">
+- **Ports**: register the ports you use to see whether each is free, in use, or in conflict (used by an unexpected process, or registered twice). "Free up" closes the process using that port (after a confirmation). "Detect" adds the ports your registered apps use (OBS from its WebSocket settings, other apps while they are running). Some comment viewers and text-to-speech tools popular with streamers are read from their settings files, so they are found even when closed. You choose which of the found ports to add, and it warns you if two linked apps disagree on a port. You can also note whether this PC's IP address is static or dynamic; "Check" fills it in by looking only at whether the wired / Wi-Fi connection uses DHCP. DDLauncher never reads the IP address itself, and a DHCP reservation on your router still shows as dynamic.<br>
+  <img src="locales/help/img/ports.png" alt="Port status" width="480">
 - **Color editor**: opacity, colors (default / custom) and six templates. Changes show on the launcher right away, and Cancel puts them back.
 - **Info**: language, version, build date, developer credit and the Debug Mode switch.
   - **Debug Mode**: settings export / import, and more.
@@ -113,6 +124,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 - Apps set to run as admin show a UAC prompt every time they start (at Windows startup too).
 - Some apps ignore "Start minimized". For OBS, putting `--minimize-to-tray` in "Launch options" is more reliable.
 - The in-app help (`?`) covers the pros and cons of running as administrator, why drag & drop stops working, and how to fix black screens.
+
+<p><img src="locales/help/img/capture.png" alt="Game Capture vs. Window Capture" width="480"></p>
 
 ## License
 
@@ -153,7 +166,7 @@ iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
 | `startup_items.py` | Reading and changing Windows startup entries (registry Run and the Startup folder; backup before changes) |
 
 - **Privilege split**: the launcher itself runs with normal rights. It receives drops from Explorer and passes the file paths to OBS (running as administrator) over the localhost WebSocket. WebSocket traffic isn't restricted by UIPI, so it gets through despite the different rights.
-- **Multiple launchers**: `launchers` in the settings file is an array. Each element creates one window (this can't be added from the settings window yet, so edit the JSON directly).
+- **Multiple launchers**: `launchers` in the settings file is an array. Each element creates one window (add them by editing the JSON directly).
 
 Tests:
 

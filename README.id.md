@@ -42,6 +42,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 1. Di OBS, buka "Tools" → "WebSocket Server Settings" lalu aktifkan "Enable WebSocket server".
 2. Catat port dan kata sandinya, lalu masukkan di launcher pada ⚙ → "Umum / OBS".
 
+<p><img src="locales/help/img/obs_websocket.png" alt="Salin port dan kata sandi WebSocket OBS ke DDLauncher" width="480"></p>
+
 ## Cara pakai
 
 ### Dasar
@@ -60,9 +62,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
   - **Selalu terbuka**: tetap terbuka tanpa memedulikan kursor.
   - Dalam mode D&D dan selama urutan peluncuran, launcher tetap terbuka apa pun pengaturannya (untuk menampilkan tempat drop dan hitung mundur).
 - **Mode tampilan** (⚙ → "Umum")
-  - **LINEAR**: belum tersedia (masih disesuaikan).
   - **GROUP**: kolom dari pojok. Jika "GROUP: batas menurun" diisi, sisanya membuat kolom baru ke arah dalam; "GROUP: batas mendatar" membatasi jumlah kolom (kolom akan memanjang). 0 = tanpa batas (satu kolom).
-  - Di kedua mode, roda mouse (atau ▲▼) memutar urutan seperti lingkaran. Aktifkan "Urutan yang diputar" untuk menyimpannya.
+  - Roda mouse (atau ▲▼) memutar urutan seperti lingkaran. Aktifkan "Urutan yang diputar" untuk menyimpannya.
 - **Kategori**: aplikasi dengan kategori yang sama ditumpuk di satu slot, dan sisanya muncul ke samping menuju bagian dalam layar saat kursor diarahkan (misalnya daftarkan YouTube → TikTok Live → Twitch di kategori "Platform"). Shift+roda (atau tilt roda) di atas tile yang ditumpuk, atau tombol ◀▶ di baris yang muncul, mengganti aplikasi yang tampil di depan.
 - **Ukuran**: **Ctrl+roda mouse** di atas launcher, atau "Ukuran" di ⚙ → "Umum", mengatur antara 50 dan 250%. Jika tidak muat di layar, ukurannya diperkecil otomatis.
 - **Ikon saat diciutkan**: bawaannya ikon `DD`. Di ⚙ → "Umum" Anda bisa menggantinya dengan ikon salah satu aplikasi atau halaman web yang didaftarkan.
@@ -70,6 +71,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 - **Bahasa**: pilih di ⚙ → "Info" → "Language". Bawaan "Otomatis" mengikuti bahasa tampilan OBS (atau bahasa Windows jika pengaturan OBS tidak ditemukan). Bahasa yang tidak didukung ditampilkan dalam English.
 
 ### Urutan peluncuran
+
+<p><img src="locales/help/img/sequence.png" alt="Linimasa urutan peluncuran" width="480"></p>
 
 - Menjalankan aplikasi sesuai urutan di pengaturan, masing-masing "jeda detik setelah aplikasi sebelumnya dijalankan". Tile aplikasi berikutnya berkedip oranye, dengan `NEXT ▸ nama detik` di bawahnya.
 - Taruh DAW dan tool VB-Audio di akhir dengan jeda lebih panjang agar tidak berebut perangkat audio.
@@ -79,12 +82,18 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 ### Mode D&D
 
+<p><img src="locales/help/img/dnd_uipi.png" alt="Alur drag & drop saat OBS berjalan sebagai administrator" width="480"></p>
+
+Saat OBS berjalan sebagai administrator, file yang dijatuhkan dari Explorer tidak sampai ke OBS. DDLauncher berjalan dengan hak akses normal, menerima file itu, lalu meneruskannya ke OBS lewat obs-websocket, jadi tetap bisa ditambahkan.
+
 - Jatuhkan file gambar, video, atau audio ke ruang D&D (atau ke launcher) untuk menambahkannya sebagai source ke scene OBS yang dipilih (scene program saat ini jika dikosongkan). Menjatuhkan ke launcher bisa dimatikan di ⚙ → "Jatuhkan ke launcher". Jika kamu menjatuhkan banyak file sekaligus (bawaan: 5 atau lebih), launcher bertanya dulu sebelum menambahkannya; ubah jumlahnya di ⚙ → "Konfirmasi saat menjatuhkan banyak file". Aktifkan ⚙ → "Folder / file campuran" untuk menjatuhkan seluruh folder dan memilih jenis yang ditambahkan (gambar, video, audio), serta mengatur ekstensi file untuk tiap jenis. Di ⚙ → "Source yang ditambahkan lewat D&D" kamu bisa mengatur source baru: tampil atau tersembunyi, langsung diputar atau berhenti (atau hanya file pertama yang diputar), volume, bisu, ulangi, pemantauan audio, sesuaikan layar, dan nama source. Jika nama sudah dipakai di OBS, nomor ditambahkan otomatis, atau kamu bisa memilih agar ditanya dulu (tambah nomor, ganti nama, tempatkan source yang ada, atau lewati).
-  - "Sesuaikan layar" dan **Image Resize Reader for OBS**: jika kamu memakai Image Resize Reader, matikan "Sesuaikan layar". Source yang ditambahkan DDLauncher juga disesuaikan oleh Image Resize Reader, jadi jika keduanya aktif posisinya bisa bergeser atau terpotong.
+  - "Sesuaikan layar" dan **[Image Resize Reader for OBS](https://github.com/ChromeBread/Image-Resize-Reader-for-OBS/blob/main/README.id.md)** (skrip OBS dari developer yang sama, yang menyesuaikan gambar dan video ke kanvas begitu ditambahkan): jika kamu memakainya, matikan "Sesuaikan layar". Source yang ditambahkan DDLauncher juga disesuaikan oleh Image Resize Reader, jadi jika keduanya aktif posisinya bisa bergeser atau terpotong.
 - Dalam mode D&D, launcher mengabaikan margin dan menempel ke tepi layar, agar file tidak jatuh ke celah dan masuk ke jendela lain. Matikan dengan ⚙ → "Posisi saat D&D".
 - Ruang D&D muncul tepat di samping launcher, menempel tetapi tidak menutupinya. Seret salah satu sudut bergaris untuk mengubah ukurannya, atau seret bagian lain untuk memindahkannya (di ⚙ → "Ubah ukuran ruang D&D" kamu bisa mengubah ukuran dari sisi juga). Ukuran dan posisi diingat; bila dijatuhkan di atas launcher, ruang itu bergeser menempel ke sisi launcher yang terdekat. Klik kanan untuk mengembalikan ukuran atau menaruhnya kembali di samping launcher. Jika ruang D&D hilang, pakai "Kembalikan ruang D&D ke samping launcher (ukuran bawaan)" di ⚙.
 
 ### Cara membaca tampilan
+
+<p><img src="locales/help/img/status.png" alt="Status tile" width="480"></p>
 
 - **Kanan atas tile**: `ADMIN` = berjalan sebagai administrator, `USER` = berjalan dengan hak akses normal, `STANDBY` = berhenti, `NO PATH` = path belum diatur
 - **Warna lampu**: abu-abu = berhenti, hijau = berjalan (hak akses normal), oranye = berjalan (administrator), merah = diatur sebagai admin tetapi berjalan dengan hak akses normal
@@ -95,8 +104,10 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 - **Aplikasi di launcher**: seret baris (atau gunakan ↑↓) untuk mengubah urutan. Arahkan kursor ke judul kolom untuk penjelasan.
   - Jika "Gambar ikon" kosong, ikon exe yang dipakai, atau ikon situs bila path berupa URL. Isi "Gambar ikon" dengan alamat web untuk memakai ikon situs itu (atau gambarnya langsung, untuk alamat gambar).
   - Baris yang dihapus bisa dikembalikan dengan "Urungkan" (Ctrl+Z). Linimasa di bawah tabel menunjukkan berapa detik setelah mulai tiap aplikasi dijalankan.
-  - "Pindah ke monitor" memindahkan jendela aplikasi ke monitor itu setelah dijalankan. Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan karena batasan Windows.
-- **Port**: daftarkan port yang dipakai untuk melihat apakah kosong, dipakai, atau bentrok (dipakai proses tak terduga, atau terdaftar dua kali). "Bebaskan" menutup proses yang memakai port itu (dengan konfirmasi). "Deteksi" menambahkan port yang dipakai aplikasi terdaftar (OBS dari pengaturan WebSocket-nya, aplikasi lain saat sedang berjalan). Sebagian penampil komentar dan aplikasi pembaca teks yang populer di kalangan streamer dibaca dari file pengaturannya, sehingga tetap ditemukan walau tertutup. Anda memilih port mana yang ditambahkan, dan akan diberi tahu bila dua aplikasi yang saling terhubung memakai port yang berbeda. Anda juga bisa mencatat apakah alamat IP PC ini statis atau dinamis; "Periksa" mengisinya hanya dengan melihat apakah koneksi kabel / Wi-Fi memakai DHCP. DDLauncher tidak pernah membaca alamat IP itu sendiri, dan reservasi DHCP di router tetap terlihat dinamis.
+  - "Pindah ke monitor" memindahkan jendela aplikasi ke monitor itu setelah dijalankan. Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan karena batasan Windows.<br>
+    <img src="locales/help/img/monitor.png" alt="Memindahkan jendela ke monitor lain" width="480">
+- **Port**: daftarkan port yang dipakai untuk melihat apakah kosong, dipakai, atau bentrok (dipakai proses tak terduga, atau terdaftar dua kali). "Bebaskan" menutup proses yang memakai port itu (dengan konfirmasi). "Deteksi" menambahkan port yang dipakai aplikasi terdaftar (OBS dari pengaturan WebSocket-nya, aplikasi lain saat sedang berjalan). Sebagian penampil komentar dan aplikasi pembaca teks yang populer di kalangan streamer dibaca dari file pengaturannya, sehingga tetap ditemukan walau tertutup. Anda memilih port mana yang ditambahkan, dan akan diberi tahu bila dua aplikasi yang saling terhubung memakai port yang berbeda. Anda juga bisa mencatat apakah alamat IP PC ini statis atau dinamis; "Periksa" mengisinya hanya dengan melihat apakah koneksi kabel / Wi-Fi memakai DHCP. DDLauncher tidak pernah membaca alamat IP itu sendiri, dan reservasi DHCP di router tetap terlihat dinamis.<br>
+  <img src="locales/help/img/ports.png" alt="Status port" width="480">
 - **Editor warna**: opasitas, warna (bawaan / kustom) dan enam templat. Perubahan langsung tampil di launcher, dan Batal mengembalikannya.
 - **Info**: bahasa tampilan, versi, tanggal build, nama pengembang, dan tombol Debug Mode.
   - **Debug Mode**: ekspor / impor pengaturan, dan lainnya.
@@ -113,6 +124,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 - Aplikasi yang diatur sebagai admin menampilkan konfirmasi UAC setiap kali dijalankan (termasuk saat startup).
 - Beberapa aplikasi mengabaikan "Mulai diminimalkan". Untuk OBS, mengisi `--minimize-to-tray` di "Opsi peluncuran" lebih andal.
 - Bantuan di dalam aplikasi (`?`) menjelaskan untung-rugi menjalankan sebagai administrator, mengapa drag & drop tidak bisa, dan cara mengatasi layar hitam.
+
+<p><img src="locales/help/img/capture.png" alt="Game Capture dan Window Capture" width="480"></p>
 
 ## Lisensi
 
@@ -153,7 +166,7 @@ iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
 | `startup_items.py` | Membaca dan mengubah entri startup Windows (Run di registry dan folder Startup; dicadangkan sebelum diubah) |
 
 - **Pemisahan hak akses**: launcher sendiri berjalan dengan hak akses normal. Launcher menerima drop dari Explorer dan meneruskan path file ke OBS (yang berjalan sebagai administrator) lewat WebSocket localhost. Lalu lintas WebSocket tidak dibatasi UIPI, jadi tetap sampai meskipun hak aksesnya berbeda.
-- **Beberapa launcher**: `launchers` di file pengaturan adalah array. Setiap elemen membuat satu jendela (belum bisa ditambahkan dari jendela pengaturan, jadi edit JSON secara langsung).
+- **Beberapa launcher**: `launchers` di file pengaturan adalah array. Setiap elemen membuat satu jendela (tambahkan dengan mengedit JSON secara langsung).
 
 Pengujian:
 

@@ -42,6 +42,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 1. Dans OBS, ouvrez « Outils » → « Paramètres du serveur WebSocket » et cochez « Activer le serveur WebSocket ».
 2. Notez le port et le mot de passe, puis saisissez-les dans le lanceur sous ⚙ → « Général / OBS ».
 
+<p><img src="locales/help/img/obs_websocket.png" alt="Reporter le port et le mot de passe WebSocket d’OBS dans DDLauncher" width="480"></p>
+
 ## Utilisation
 
 ### Les bases
@@ -60,9 +62,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
   - **Toujours déplié** : reste ouvert quelle que soit la position de la souris.
   - En mode D&D et pendant la séquence, il reste ouvert dans tous les cas (pour montrer la zone de dépôt et le compte à rebours).
 - **Disposition** (⚙ → « Général »)
-  - **LINEAR** : pas encore disponible (en cours de réglage).
   - **GROUP** : une colonne partant du coin. Avec « GROUP : max. en hauteur », les suivantes commencent une nouvelle colonne vers l'intérieur ; « GROUP : max. en largeur » limite le nombre de colonnes (elles s'allongent alors). 0 = illimité (une seule colonne).
-  - Dans les deux cas, la molette (ou ▲▼) fait tourner l'ordre comme un anneau. Activez « Ordre tourné » pour le conserver.
+  - La molette (ou ▲▼) fait tourner l'ordre comme un anneau. Activez « Ordre tourné » pour le conserver.
 - **Catégorie** : les applis d'une même catégorie s'empilent dans un seul emplacement, et les autres s'ouvrent sur le côté vers l'intérieur de l'écran au survol (par ex. YouTube → Twitch → Kick dans une catégorie « Plateformes »). Maj+molette (ou l'inclinaison de la molette) sur la tuile empilée, ou les boutons ◀▶ de la rangée ouverte, changent l'appli mise en avant.
 - **Taille** : **Ctrl+molette** sur le lanceur, ou « Taille » sous ⚙ → « Général », de 50 à 250 %. S'il ne tient plus à l'écran, il se réduit automatiquement.
 - **Icône repliée** : par défaut l'icône `DD`. Sous ⚙ → « Général », vous pouvez afficher à la place l'icône d'une de vos applis ou pages web.
@@ -70,6 +71,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 - **Langue** : à choisir sous ⚙ → « Infos » → « Language ». Par défaut, « Auto » suit la langue de l'interface d'OBS (ou celle de Windows si les réglages d'OBS sont introuvables). Les langues non prises en charge s'affichent en English.
 
 ### Séquence de lancement
+
+<p><img src="locales/help/img/sequence.png" alt="Chronologie de la séquence de lancement" width="480"></p>
 
 - Lance les applis dans l'ordre des paramètres, chacune « délai en secondes après le lancement de la précédente ». La tuile de la prochaine appli clignote en orange, avec `NEXT ▸ nom secondes` en dessous.
 - Placez les DAW et outils VB-Audio en dernier avec un délai plus long pour éviter qu'ils se disputent les périphériques audio.
@@ -79,12 +82,18 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 ### Mode D&D
 
+<p><img src="locales/help/img/dnd_uipi.png" alt="Glisser-déposer quand OBS tourne en administrateur" width="480"></p>
+
+Quand OBS tourne en administrateur, les fichiers déposés depuis l’Explorateur ne lui parviennent pas. DDLauncher, lancé avec des droits normaux, les reçoit et les transmet à OBS via obs-websocket : l’ajout fonctionne quand même.
+
 - Déposez des images, vidéos ou fichiers audio sur l’espace D&D (ou sur le lanceur) pour les ajouter comme sources à la scène OBS choisie (la scène de programme actuelle si le champ est vide). Le dépôt sur le lanceur se désactive avec ⚙ → « Dépôt sur le lanceur ». Si vous déposez beaucoup de fichiers d’un coup (5 ou plus par défaut), il demande avant de les ajouter ; changez ce nombre avec ⚙ → « Confirmer les dépôts multiples ». Activez ⚙ → « Dossiers / fichiers mélangés » pour déposer des dossiers entiers et choisir les types à ajouter (images, vidéos, audio), ainsi que les extensions de chaque type. ⚙ → « Sources ajoutées par D&D » règle l’état des nouvelles sources : affichées ou masquées, en lecture ou à l’arrêt (ou seul le premier fichier en lecture), volume, sourdine, boucle, monitoring audio, ajustement à l’écran et nom de la source. Si un nom est déjà utilisé dans OBS, un numéro est ajouté automatiquement, ou il peut vous demander quoi faire (numéro, renommer, placer la source existante ou ignorer).
-  - « Ajuster à l’écran » et **Image Resize Reader for OBS** : si vous utilisez Image Resize Reader, laissez « Ajuster à l’écran » désactivé. Il ajuste aussi les sources ajoutées par DDLauncher, et avec les deux actifs la source se retrouve décalée ou coupée.
+  - « Ajuster à l’écran » et **[Image Resize Reader for OBS](https://github.com/ChromeBread/Image-Resize-Reader-for-OBS/blob/main/README.fr.md)** (un script OBS du même développeur, qui ajuste les images et vidéos au canevas dès leur ajout) : si vous l’utilisez, laissez « Ajuster à l’écran » désactivé. Il ajuste aussi les sources ajoutées par DDLauncher, et avec les deux actifs la source se retrouve décalée ou coupée.
 - En mode D&D, le lanceur ignore la marge et se colle au bord de l'écran, pour qu'un fichier ne tombe pas dans le vide et n'atterrisse pas dans une autre fenêtre. Désactivez-le avec ⚙ → « Position en mode D&D ».
 - La zone D&D s’ouvre juste à côté du lanceur, collée sans jamais le recouvrir. Faites glisser un coin rayé pour changer sa taille, ou n’importe quel autre endroit pour la déplacer (⚙ → « Redimensionner l'espace D&D » permet aussi de la redimensionner par les bords). Taille et position sont mémorisées ; déposée sur le lanceur, la zone glisse contre le bord du lanceur le plus proche. Un clic droit permet de rétablir la taille ou de la remettre à côté du lanceur. Si vous la perdez de vue, utilisez « Remettre l'espace D&D à côté du lanceur (taille par défaut) » dans ⚙.
 
 ### Lire l'affichage
+
+<p><img src="locales/help/img/status.png" alt="États des tuiles" width="480"></p>
 
 - **En haut à droite d'une tuile** : `ADMIN` = lancé en administrateur, `USER` = lancé avec les droits normaux, `STANDBY` = arrêté, `NO PATH` = chemin non défini
 - **Couleurs du voyant** : gris = arrêté, vert = en cours (droits normaux), orange = en cours (administrateur), rouge = réglé en admin mais lancé avec les droits normaux
@@ -95,8 +104,10 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 - **Applis du lanceur** : glissez les lignes (ou utilisez ↑↓) pour les réordonner. Survolez un en-tête de colonne pour son explication.
   - Si « Image d'icône » est vide, l'icône de l'exe est utilisée, ou celle du site quand le chemin est une URL. Mettez une adresse web dans « Image d'icône » pour utiliser l'icône de ce site (ou l'image elle-même, pour l'adresse d'une image).
   - Une ligne supprimée revient avec « Annuler la suppression » (Ctrl+Z). La chronologie sous le tableau montre combien de secondes après le début chaque appli se lance.
-  - « Écran de destination » déplace la fenêtre de l'appli vers cet écran après le lancement. Les applis lancées en administrateur ne peuvent pas être déplacées à cause d'une restriction de Windows.
-- **Ports** : enregistrez vos ports pour voir s'ils sont libres, utilisés ou en conflit (utilisés par un processus inattendu, ou enregistrés deux fois). « Libérer » ferme le processus qui utilise ce port (après confirmation). « Détecter » ajoute les ports utilisés par vos applis (OBS depuis ses paramètres WebSocket, les autres quand elles tournent). Certains lecteurs de commentaires et logiciels de synthèse vocale courants chez les streamers sont lus dans leurs fichiers de réglages, donc trouvés même fermés. Vous choisissez les ports à ajouter, et un avertissement s’affiche si deux applis reliées ne sont pas d’accord sur un port. Vous pouvez aussi noter si l'adresse IP de ce PC est fixe ou dynamique ; « Vérifier » la remplit en regardant seulement si la connexion filaire / Wi-Fi utilise le DHCP. DDLauncher ne lit jamais l'adresse IP elle-même, et une réservation DHCP sur la box apparaît quand même comme dynamique.
+  - « Écran de destination » déplace la fenêtre de l'appli vers cet écran après le lancement. Les applis lancées en administrateur ne peuvent pas être déplacées à cause d'une restriction de Windows.<br>
+    <img src="locales/help/img/monitor.png" alt="Déplacer une fenêtre vers un autre écran" width="480">
+- **Ports** : enregistrez vos ports pour voir s'ils sont libres, utilisés ou en conflit (utilisés par un processus inattendu, ou enregistrés deux fois). « Libérer » ferme le processus qui utilise ce port (après confirmation). « Détecter » ajoute les ports utilisés par vos applis (OBS depuis ses paramètres WebSocket, les autres quand elles tournent). Certains lecteurs de commentaires et logiciels de synthèse vocale courants chez les streamers sont lus dans leurs fichiers de réglages, donc trouvés même fermés. Vous choisissez les ports à ajouter, et un avertissement s’affiche si deux applis reliées ne sont pas d’accord sur un port. Vous pouvez aussi noter si l'adresse IP de ce PC est fixe ou dynamique ; « Vérifier » la remplit en regardant seulement si la connexion filaire / Wi-Fi utilise le DHCP. DDLauncher ne lit jamais l'adresse IP elle-même, et une réservation DHCP sur la box apparaît quand même comme dynamique.<br>
+  <img src="locales/help/img/ports.png" alt="État des ports" width="480">
 - **Éditeur de couleurs** : opacité, couleurs (par défaut / personnalisées) et six modèles. Les changements s'appliquent tout de suite au lanceur, et Annuler les rétablit.
 - **Infos** : langue de l'interface, version, date de compilation, nom du développeur et interrupteur Debug Mode.
   - **Debug Mode** : export / import des paramètres, entre autres.
@@ -113,6 +124,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 - Les applis réglées en admin affichent une confirmation UAC à chaque lancement (au démarrage de Windows aussi).
 - Certaines applis ignorent « Lancer réduit ». Pour OBS, mettre `--minimize-to-tray` dans « Options de lancement » est plus fiable.
 - L'aide intégrée (`?`) détaille les avantages et inconvénients du mode administrateur, pourquoi le glisser-déposer ne marche plus, et comment régler les écrans noirs.
+
+<p><img src="locales/help/img/capture.png" alt="Capture de jeu et capture de fenêtre" width="480"></p>
 
 ## Licence
 
@@ -153,7 +166,7 @@ iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
 | `startup_items.py` | Lecture et modification des entrées de démarrage de Windows (Run du Registre et dossier Démarrage ; sauvegarde avant modification) |
 
 - **Séparation des droits** : le lanceur tourne avec les droits normaux. Il reçoit les dépôts de l'Explorateur et transmet les chemins des fichiers à OBS (lancé en administrateur) via le WebSocket local. Le trafic WebSocket n'est pas limité par l'UIPI : il passe malgré la différence de droits.
-- **Plusieurs lanceurs** : `launchers` dans le fichier de paramètres est un tableau. Chaque élément crée une fenêtre (pas encore possible depuis la fenêtre des paramètres : modifiez le JSON directement).
+- **Plusieurs lanceurs** : `launchers` dans le fichier de paramètres est un tableau. Chaque élément crée une fenêtre (ajoutez-les en modifiant le JSON directement).
 
 Tests :
 
