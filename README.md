@@ -30,8 +30,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 
 | Version | File | Good for |
 |---|---|---|
-| Installer | `DDLauncher-0.2.0-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
-| Standalone | `DDLauncher-0.2.0-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
+| Installer | `DDLauncher-0.2.1-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
+| Standalone | `DDLauncher-0.2.1-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
 
 - Standalone: unzip it anywhere and run `DDLauncher.exe`.
 - The exe isn't signed, so on first launch Windows SmartScreen ("Windows protected your PC") or your antivirus may warn you. Click "More info" → "Run anyway". If you'd rather check first, run it from source (see "For developers" below).
@@ -133,7 +133,7 @@ To build the folder version (`dist\DDLauncher\`) and the installer (the installe
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
 ```
 
 ### Files

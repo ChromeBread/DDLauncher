@@ -30,8 +30,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 | Versi | File | Cocok untuk |
 |---|---|---|
-| Installer | `DDLauncher-0.2.0-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
-| Standalone | `DDLauncher-0.2.0-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
+| Installer | `DDLauncher-0.2.1-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
+| Standalone | `DDLauncher-0.2.1-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
 
 - Standalone: ekstrak di mana saja lalu jalankan `DDLauncher.exe`.
 - Exe-nya tidak bertanda tangan, jadi saat pertama dijalankan Windows SmartScreen ("Windows melindungi PC Anda") atau antivirus bisa memberi peringatan. Klik "Info selengkapnya" → "Tetap jalankan". Jika ingin memeriksa dulu, jalankan dari kode sumber (lihat "Untuk developer" di bawah).
@@ -133,7 +133,7 @@ Untuk membuat versi folder (`dist\DDLauncher\`) dan installer (installer memerlu
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
 ```
 
 ### Daftar file

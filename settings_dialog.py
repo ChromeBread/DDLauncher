@@ -11,7 +11,7 @@ from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFontMetrics, QGuiApplication, QIcon, QKeySequence, QPainter, QPalette, QPen, QShortcut
 from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QAbstractScrollArea, QAbstractSpinBox, QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QGroupBox, QInputDialog, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMenu,
-                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStyledItemDelegate, QTableWidget,
+                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStyle, QStyledItemDelegate, QStyleOptionFrame, QTableWidget,
                                QTableWidgetItem, QTabWidget, QToolTip, QVBoxLayout, QWidget)
 
 import about
@@ -149,6 +149,39 @@ class ToggleSwitch(QAbstractButton):
             p.setPen(QPen(pal.color(QPalette.Highlight), 1, Qt.DotLine))
             p.setBrush(Qt.NoBrush)
             p.drawRoundedRect(QRectF(self.rect()).adjusted(2, 2, -2, -2), 4, 4)
+
+
+class MaskedLineEdit(QLineEdit):
+    """隠している間は、中身に関係なく決まった伏せ字を描く入力欄（中身の長さも分からないように）。空なら何も描かない。
+
+    中身はそのまま持ち、入力もできる。locked を渡すと、隠している間に読み取り専用の欄を押したときに呼ぶ。
+    """
+
+    def __init__(self, text: str = "", **kw):
+        super().__init__(text, **kw)
+        self.masked = True
+        self.locked = None
+
+    def set_masked(self, on: bool) -> None:
+        self.masked = on
+        self.update()
+
+    def mousePressEvent(self, e):
+        if self.masked and self.isReadOnly() and self.locked:
+            self.locked()
+            return
+        super().mousePressEvent(e)
+
+    def paintEvent(self, e):
+        if not self.masked:
+            return super().paintEvent(e)
+        p = QPainter(self)
+        opt = QStyleOptionFrame()
+        self.initStyleOption(opt)
+        self.style().drawPrimitive(QStyle.PE_PanelLineEdit, opt, p, self)
+        rect = self.style().subElementRect(QStyle.SE_LineEditContents, opt, self).adjusted(4, 0, -4, 0)
+        p.setPen(self.palette().color(QPalette.Text))
+        p.drawText(rect, Qt.AlignVCenter | Qt.AlignLeft, MASK if self.text() else "")
 
 
 class MaskDelegate(QStyledItemDelegate):
@@ -749,11 +782,13 @@ class SettingsDialog(QDialog):
         self.anim = self._combo("anim", config.ANIMATIONS, self.cfg["animation"])
         self.startup = WrapCheck(tr("gen.startup.check"), winproc.is_startup_enabled())
         obs = self.cfg["obs"]
-        self.host = QLineEdit(obs["host"])
+        self.host = MaskedLineEdit(obs["host"])
+        self.host.locked = self._address_locked   # 隠している間に触ったら、スイッチを指して案内する
         self.port = QSpinBox(minimum=1, maximum=65535, value=int(obs["port"]))
-        self.password = QLineEdit(obs["password"], echoMode=QLineEdit.Password)   # 画面に映らないよう伏せ字が既定（開き直すと伏せ字に戻る）
+        self.password = MaskedLineEdit(obs["password"], echoMode=QLineEdit.Password)   # 伏せ字が既定（開き直すと伏せ字に戻る）
         reveal = QPushButton(tr("gen.obs_password.show"), checkable=True, autoDefault=False)
-        reveal.toggled.connect(lambda on: (self.password.setEchoMode(QLineEdit.Normal if on else QLineEdit.Password),
+        reveal.toggled.connect(lambda on: (self.password.set_masked(not on),
+                                           self.password.setEchoMode(QLineEdit.Normal if on else QLineEdit.Password),
                                            reveal.setText(tr("gen.obs_password.hide" if on else "gen.obs_password.show"))))
         password_row = QWidget()
         pw = QHBoxLayout(password_row)
@@ -811,7 +846,7 @@ class SettingsDialog(QDialog):
                          ("max_rows", self.max_rows), ("wheel_rotate", self.wheel_rotate), ("keep_rot", self.keep_rot),
                          ("anim", self.anim)]),
             ("startup", [("show_seq", self.show_seq), ("after_seq", self.after_seq), ("startup", self.startup)]),
-            ("obs", [("obs_host", self.host), ("obs_port", self.port), ("obs_password", password_row), ("scene", self.scene)]),
+            ("obs", [("obs_host", self.host),("obs_port", self.port), ("obs_password", password_row), ("scene", self.scene)]),
         )
         v = QVBoxLayout(w)
         labels = []
@@ -1526,7 +1561,8 @@ class SettingsDialog(QDialog):
         """ファイルの場所・URL・OBS の接続先を見せるか隠すか（配信に映る事故を防ぐ）。中身はそのまま、見せ方だけ変える。"""
         for t in (self.table, self.ar_table):
             t.viewport().update()   # 伏せ字 ⇔ 元の文字の描き直し（MaskDelegate がスイッチの状態を見る）
-        self.host.setEchoMode(QLineEdit.Normal if on else QLineEdit.Password)
+        self.host.set_masked(not on)
+        self.host.setReadOnly(not on)
         for lb, text in self._addr_labels:
             lb.setText(text if on else MASK)
 

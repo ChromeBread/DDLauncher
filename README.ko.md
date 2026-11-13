@@ -30,8 +30,8 @@
 
 | 버전 | 파일 | 이런 경우에 |
 |---|---|---|
-| 설치판 | `DDLauncher-0.2.0-windows-x64-setup.exe` | 시작 메뉴에 등록하고 Windows의 "앱"에서 제거하고 싶을 때 |
-| 단독 실행판 | `DDLauncher-0.2.0-windows-x64-portable.zip` | 설치 없이 쓰고 싶을 때. 폴더째 지우면 제거됩니다 |
+| 설치판 | `DDLauncher-0.2.1-windows-x64-setup.exe` | 시작 메뉴에 등록하고 Windows의 "앱"에서 제거하고 싶을 때 |
+| 단독 실행판 | `DDLauncher-0.2.1-windows-x64-portable.zip` | 설치 없이 쓰고 싶을 때. 폴더째 지우면 제거됩니다 |
 
 - 단독 실행판은 zip을 원하는 곳에 풀고 `DDLauncher.exe`를 실행합니다.
 - 서명이 없는 exe라서 처음 실행할 때 Windows SmartScreen("Windows의 PC 보호")이나 백신이 경고할 수 있습니다. "추가 정보" → "실행"으로 실행할 수 있습니다. 걱정되면 아래 "개발자용"의 "소스에서 실행"으로 내용을 확인한 뒤 사용하세요.
@@ -133,7 +133,7 @@ py -m venv .venv
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
 ```
 
 ### 파일 구성

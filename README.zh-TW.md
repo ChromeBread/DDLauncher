@@ -30,8 +30,8 @@
 
 | 版本 | 檔案 | 適合 |
 |---|---|---|
-| 安裝版 | `DDLauncher-0.2.0-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
-| 免安裝版 | `DDLauncher-0.2.0-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
+| 安裝版 | `DDLauncher-0.2.1-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
+| 免安裝版 | `DDLauncher-0.2.1-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
 
 - 免安裝版：把 zip 解壓縮到任意位置，執行 `DDLauncher.exe`。
 - 因為 exe 沒有簽章，第一次啟動時 Windows SmartScreen（「Windows 已保護您的電腦」）或防毒軟體可能會警告。點「其他資訊」→「仍要執行」即可啟動。若想先確認內容，請依下方「開發者資訊」中的「從原始碼執行」使用。
@@ -133,7 +133,7 @@ py -m venv .venv
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
 ```
 
 ### 檔案結構

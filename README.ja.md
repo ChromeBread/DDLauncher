@@ -30,8 +30,8 @@
 
 | 版 | ファイル | 向いている使い方 |
 |---|---|---|
-| インストーラー版 | `DDLauncher-0.2.0-windows-x64-setup.exe` | スタートメニューに登録し、Windows の「アプリ」から削除したい |
-| スタンドアロン版 | `DDLauncher-0.2.0-windows-x64-portable.zip` | インストールせずに使いたい。フォルダごと消せば削除できる |
+| インストーラー版 | `DDLauncher-0.2.1-windows-x64-setup.exe` | スタートメニューに登録し、Windows の「アプリ」から削除したい |
+| スタンドアロン版 | `DDLauncher-0.2.1-windows-x64-portable.zip` | インストールせずに使いたい。フォルダごと消せば削除できる |
 
 - スタンドアロン版は、zip を好きな場所に展開して `DDLauncher.exe` を起動します。
 - 署名の無い exe なので、初めて起動するときに Windows SmartScreen（「Windows によって PC が保護されました」）やウイルス対策ソフトが警告することがあります。「詳細情報」→「実行」で起動できます。気になる場合は、下の「開発者向け」にある「ソースから動かす」で中身を確かめてから使ってください。
@@ -133,7 +133,7 @@ py -m venv .venv
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
 ```
 
 ### ファイル構成

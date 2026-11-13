@@ -30,8 +30,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 | Version | Fichier | Pour qui |
 |---|---|---|
-| Installateur | `DDLauncher-0.2.0-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
-| Autonome | `DDLauncher-0.2.0-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
+| Installateur | `DDLauncher-0.2.1-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
+| Autonome | `DDLauncher-0.2.1-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
 
 - Version autonome : décompressez-la où vous voulez et lancez `DDLauncher.exe`.
 - L'exe n'est pas signé : au premier lancement, Windows SmartScreen (« Windows a protégé votre ordinateur ») ou votre antivirus peut afficher un avertissement. Cliquez sur « Informations complémentaires » → « Exécuter quand même ». Pour vérifier d'abord, lancez-le depuis les sources (voir « Pour les développeurs » plus bas).
@@ -133,7 +133,7 @@ Pour créer la version dossier (`dist\DDLauncher\`) et l'installateur (l'install
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.2.1 installer\DDLauncher.iss
 ```
 
 ### Fichiers
