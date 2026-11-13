@@ -66,6 +66,28 @@ def _col_widths(table: QTableWidget) -> list[int]:
     return [table.columnWidth(i) for i in range(table.columnCount())]
 
 
+class ExtPicker(QWidget):
+    """拡張子の選択: 用意した候補はチェックボックス、それ以外は「その他」に手で入力する。"""
+
+    def __init__(self, choices: list[str], current: list[str]):
+        super().__init__()
+        grid = QGridLayout(self)
+        grid.setContentsMargins(0, 0, 0, 0)
+        self.boxes = {}
+        for i, ext in enumerate(choices):
+            b = QCheckBox(ext.lstrip("."), checked=ext in current)
+            self.boxes[ext] = b
+            grid.addWidget(b, i // 5, i % 5)   # 5 個で折り返す（訳が長い言語でも横にはみ出さない）
+        self.other = QLineEdit(" ".join(e.lstrip(".") for e in current if e not in choices),
+                               placeholderText=tr("gen.dnd_ext_other.placeholder"))
+        row = (len(choices) + 4) // 5
+        grid.addWidget(QLabel(tr("gen.dnd_ext_other")), row, 0)
+        grid.addWidget(self.other, row, 1, 1, 4)
+
+    def exts(self) -> list[str]:
+        return config.parse_exts([e for e, b in self.boxes.items() if b.isChecked()] + config.parse_exts(self.other.text()))
+
+
 class WrapCheck(QWidget):
     """折り返すチェックボックス。QCheckBox の文字は折り返さず、訳が長い言語で設定画面が横にはみ出すため。"""
 
@@ -1228,9 +1250,9 @@ class SettingsDialog(QDialog):
         self.add_fit.setToolTip(tr("gen.add_fit.tip"))   # Image Resize Reader for OBS と両方オンにしない案内
         self.add_name = self._combo("add_name", config.ADD_NAME, add["name"])
         self.add_conflict = self._combo("add_conflict", config.ADD_CONFLICT, add["on_conflict"])
-        self.dnd_ext = {k: QLineEdit(" ".join(e.lstrip(".") for e in self.lcfg["dnd_exts"][k]),
-                                     placeholderText=" ".join(e.lstrip(".") for e in config.DEFAULT_EXTS[k]),
-                                     toolTip=tr("gen.dnd_ext.tip")) for k in config.DND_KINDS}
+        self.dnd_ext = {k: ExtPicker(config.DND_EXT_CHOICES[k], self.lcfg["dnd_exts"][k]) for k in config.DND_KINDS}
+        for picker in self.dnd_ext.values():
+            picker.setToolTip(tr("gen.dnd_ext.tip"))
         for edit in self.dnd_ext.values():   # 拡張子の指定は「種類を選ぶ」がオンのときだけ効く
             edit.setEnabled(self.lcfg["dnd_pick"])
             self.dnd_pick.box.toggled.connect(edit.setEnabled)
@@ -1418,7 +1440,7 @@ class SettingsDialog(QDialog):
                          dnd_flush=self.dnd_flush.isChecked(), collapse=self.collapse.currentData(),
                          dnd_on_launcher=self.dnd_on_launcher.isChecked(), dnd_resize=self.dnd_resize.currentData(), dnd_warn_count=self.dnd_warn.value(),
                          dnd_pick=self.dnd_pick.isChecked(),
-                         dnd_exts={k: config.parse_exts(self.dnd_ext[k].text()) for k in config.DND_KINDS},
+                         dnd_exts={k: self.dnd_ext[k].exts() for k in config.DND_KINDS},
                          mini_icon=self.mini_icon.currentData() or "",
                          layout=self.layout_mode.currentData(),
                          max_cols=self.max_cols.value(), max_rows=self.max_rows.value(),

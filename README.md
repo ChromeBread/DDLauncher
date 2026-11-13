@@ -16,7 +16,10 @@ A lightweight launcher for streamers that sits in a corner of the screen (Window
 <img src="docs/images/launcher-en.png" alt="Launcher" height="300">
 <img src="docs/images/settings-apps-en.png" alt="Settings: apps on the launcher and the launch-sequence timeline" width="600">
 </p>
-<img src="docs/images/settings-colors-en.png" alt="Color editor" width="600">
+<p>
+<img src="docs/images/settings-colors-en.png" alt="Color editor" width="420">
+<img src="docs/images/settings-info-en.png" alt="Info page: language, version, build date, Debug Mode" width="420">
+</p>
 
 ## Requirements
 
@@ -30,8 +33,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 
 | Version | File | Good for |
 |---|---|---|
-| Installer | `DDLauncher-0.3.1-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
-| Standalone | `DDLauncher-0.3.1-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
+| Installer | `DDLauncher-0.3.2-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
+| Standalone | `DDLauncher-0.3.2-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
 
 - Standalone: unzip it anywhere and run `DDLauncher.exe`.
 - The exe isn't signed, so on first launch Windows SmartScreen ("Windows protected your PC") or your antivirus may warn you. Click "More info" → "Run anyway". If you'd rather check first, run it from source (see "For developers" below).
@@ -101,6 +104,12 @@ Even when OBS runs as administrator and refuses drops from Explorer, dropping on
 
 ### Settings
 
+<details><summary>Screenshot of the "General / OBS" tab (all settings)</summary>
+
+<img src="docs/images/settings-general-en.png" alt="General / OBS tab" width="600">
+
+</details>
+
 - **Apps on the launcher**: drag rows (or use ↑↓) to reorder. Hover a column heading for an explanation.
   - "+ Add app…" picks an exe or shortcut and fills in the name and path for you. "+ Add web address" adds a row for a URL; the "Browser" column chooses which browser opens it (your default browser if left as is). Names on the tiles are shown in capitals; to show them as typed, turn off ⚙ → "Name case".
   - If "Icon image" is empty, the exe's icon is used, or the site's icon when the path is a URL. Put a web address in "Icon image" to use that site's icon (or the image itself, for an image's address). Site icons are downloaded once and kept on this PC, so a site that changes its icon keeps the old one; set ⚙ → "Site icons" to "Fetch again at every start" to refresh them each time DDLauncher starts.
@@ -108,7 +117,7 @@ Even when OBS runs as administrator and refuses drops from Explorer, dropping on
   - "Move to monitor" moves the app's window to that monitor after it starts. Apps started as administrator can't be moved because of a Windows restriction.<br>
     <img src="locales/help/img/monitor.png" alt="Moving a window to another monitor" width="480">
 - **Ports**: register the ports you use to see whether each is free, in use, or in conflict (used by an unexpected process, or registered twice). "Free up" closes the process using that port (after a confirmation). "Detect" adds the ports your registered apps use (OBS from its WebSocket settings, other apps while they are running). Some comment viewers and text-to-speech tools popular with streamers are read from their settings files, so they are found even when closed. You choose which of the found ports to add, and it warns you if two linked apps disagree on a port.<br>
-  <img src="locales/help/img/ports.png" alt="Port status" width="480">
+  <img src="docs/images/settings-ports-en.png" alt="Port status" width="600">
 - **Color editor**: opacity, colors (default / custom) and six templates. Changes show on the launcher right away, and Cancel puts them back.
 - **Info**: language, version, build date, developer credit and the Debug Mode switch.
   - **Debug Mode**: settings export / import, and more.
@@ -147,7 +156,7 @@ To build the folder version (`dist\DDLauncher\`) and the installer (the installe
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.1 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.2 installer\DDLauncher.iss
 ```
 
 ### Files

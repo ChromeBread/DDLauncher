@@ -1,12 +1,12 @@
 ; Inno Setup 6.6+ script. Build the folder version first, then:
 ;   .venv\Scripts\pyinstaller DDLauncher.spec
-;   iscc /DAppVersion=0.3.1 installer\DDLauncher.iss
+;   iscc /DAppVersion=0.3.2 installer\DDLauncher.iss
 ; Installs for the current user only (no administrator rights), like the settings in %APPDATA%\CBApps\DDLauncher.
 ; Uninstall first offers the safe uninstaller (DDLauncher-Uninstall.exe) to export / remove the settings,
 ; then removes the program folder. The settings are never removed without asking.
 
 #ifndef AppVersion
-  #define AppVersion "0.3.1"
+  #define AppVersion "0.3.2"
 #endif
 #ifndef StageDir
   #define StageDir "..\dist\DDLauncher"

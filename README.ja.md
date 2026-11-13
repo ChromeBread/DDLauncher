@@ -16,7 +16,10 @@
 <img src="docs/images/launcher-ja.png" alt="ランチャー" height="300">
 <img src="docs/images/settings-apps-ja.png" alt="設定画面: ランチャーに並べるアプリと起動シーケンスの流れ" width="600">
 </p>
-<img src="docs/images/settings-colors-ja.png" alt="カラーエディター" width="600">
+<p>
+<img src="docs/images/settings-colors-ja.png" alt="カラーエディター" width="420">
+<img src="docs/images/settings-info-ja.png" alt="情報ページ: 言語・バージョン・ビルド日・Debug Mode" width="420">
+</p>
 
 ## 動作環境
 
@@ -30,8 +33,8 @@
 
 | 版 | ファイル | 向いている使い方 |
 |---|---|---|
-| インストーラー版 | `DDLauncher-0.3.1-windows-x64-setup.exe` | スタートメニューに登録し、Windows の「アプリ」から削除したい |
-| スタンドアロン版 | `DDLauncher-0.3.1-windows-x64-portable.zip` | インストールせずに使いたい。フォルダごと消せば削除できる |
+| インストーラー版 | `DDLauncher-0.3.2-windows-x64-setup.exe` | スタートメニューに登録し、Windows の「アプリ」から削除したい |
+| スタンドアロン版 | `DDLauncher-0.3.2-windows-x64-portable.zip` | インストールせずに使いたい。フォルダごと消せば削除できる |
 
 - スタンドアロン版は、zip を好きな場所に展開して `DDLauncher.exe` を起動します。
 - 署名の無い exe なので、初めて起動するときに Windows SmartScreen（「Windows によって PC が保護されました」）やウイルス対策ソフトが警告することがあります。「詳細情報」→「実行」で起動できます。気になる場合は、下の「開発者向け」にある「ソースから動かす」で中身を確かめてから使ってください。
@@ -101,6 +104,12 @@ OBS を管理者権限で動かしているとエクスプローラーからの�
 
 ### 設定画面
 
+<details><summary>「全般 / OBS」タブの画面（全項目）</summary>
+
+<img src="docs/images/settings-general-ja.png" alt="全般 / OBS タブ" width="600">
+
+</details>
+
 - **ランチャーに並べるアプリ**: 行をドラッグ（または ↑↓）で並べ替えます。見出しにマウスを乗せると各列の説明が出ます。
   - 「＋ アプリを追加…」で exe やショートカットを選ぶと、表示名とパスが入った行を足せます。「＋ Web アドレスを追加」は URL 用の行を足します。Web アドレスは「ブラウザ」の列で、開くブラウザを選べます（そのままなら既定のブラウザ）。タイルの表示名は大文字で表示します。入力したとおりに表示したいときは、⚙ →「表示名」のチェックを外します。
   - 「アイコン画像」が空欄なら exe のアイコン、パスが URL ならサイトのアイコンを使います。アイコン画像に Web アドレスを入れると、そのサイトのアイコン（画像のアドレスならその画像）を使います。サイトのアイコンは一度取ってきたら PC に保存して使い続けるので、サイト側でアイコンが変わっても古いままです。⚙ →「サイトのアイコン」を「起動するたびに取り直す」にすると、DDLauncher の起動ごとに取り直します。
@@ -108,7 +117,7 @@ OBS を管理者権限で動かしているとエクスプローラーからの�
   - 「起動後に移すモニタ」を選ぶと、起動後にウィンドウをそのモニタへ移します。管理者権限で起動したアプリは Windows の制限により移せません。<br>
     <img src="locales/help/img/monitor.png" alt="ウィンドウを別のモニタへ移す" width="480">
 - **ポート管理**: 使うポートを登録すると、空き / 使用中 / 衝突（想定外のプロセスが使用中、または重複登録）を表示します。「解放」はそのポートを使っているプロセスを終了します（確認あり）。「自動取得」で、登録アプリが使うポートを追加できます（OBS は WebSocket の設定から、ほかのアプリは起動中のものから）。配信でよく使うコメントビューアや読み上げソフトの一部は、設定ファイルから読むので、起動していなくても見つかります。見つかったポートから追加するものを選べます。連携しているアプリ同士でポートが食い違っていれば知らせます。<br>
-  <img src="locales/help/img/ports.png" alt="ポートの状態" width="480">
+  <img src="docs/images/settings-ports-ja.png" alt="ポートの状態" width="600">
 - **カラーエディター**: 不透明度、配色（標準 / カスタム）、6 種類のテンプレートを選べます。変えた色はすぐランチャーに反映され、キャンセルで元に戻ります。
 - **情報**: 表示言語、バージョン、ビルド日、開発者の表記、Debug Mode の切り替えがあります。
   - **Debug Mode**: 設定のエクスポート / インポートなど。
@@ -147,7 +156,7 @@ py -m venv .venv
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.1 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.2 installer\DDLauncher.iss
 ```
 
 ### ファイル構成

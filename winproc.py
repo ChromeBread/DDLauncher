@@ -327,8 +327,13 @@ def move_to_monitor(hwnd: int, device: str) -> bool:
 
 # ---- ポート管理 ----
 
+# 機器探しの共用 UDP（NetBIOS / SSDP / WS-Discovery / mDNS / LLMNR）。Windows やブラウザも同じ番号を同時に使うので、
+# どのアプリの物でもない。拾うと「Shoost が 5353 を使用中 → Edge と衝突」のような誤った衝突になる
+SHARED_UDP_PORTS = {137, 138, 1900, 3702, 5353, 5355}
+
+
 def listening_ports() -> dict[int, list[tuple[int, str, str]]]:
-    """{port: [(pid, プロセス名, 'TCP'|'UDP'), ...]}  TCP は LISTEN のみ。管理者不要。"""
+    """{port: [(pid, プロセス名, 'TCP'|'UDP'), ...]}  TCP は LISTEN のみ、共用の UDP は除く。管理者不要。"""
     names: dict[int, str] = {}
     out: dict[int, list[tuple[int, str, str]]] = {}
     for c in psutil.net_connections("inet"):
@@ -336,6 +341,8 @@ def listening_ports() -> dict[int, list[tuple[int, str, str]]]:
             continue
         tcp = c.type == socket.SOCK_STREAM
         if tcp and c.status != psutil.CONN_LISTEN:
+            continue
+        if not tcp and c.laddr.port in SHARED_UDP_PORTS:
             continue
         pid = c.pid or 0
         if pid not in names:

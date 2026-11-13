@@ -869,6 +869,25 @@ def test_favicon_refresh_once_per_launch():
     assert config.normalize({"favicon_refresh": "launch"})["favicon_refresh"] == "launch"
 
 
+
+def test_listening_ports_skips_shared_udp():
+    from collections import namedtuple
+    from unittest import mock
+    import socket
+    import winproc
+    Conn = namedtuple("Conn", "laddr type status pid")
+    Addr = namedtuple("Addr", "ip port")
+    conns = [Conn(Addr("0.0.0.0", 5353), socket.SOCK_DGRAM, "NONE", 10),    # mDNS: Shoost / ブラウザ / Windows が共用
+             Conn(Addr("0.0.0.0", 5353), socket.SOCK_DGRAM, "NONE", 11),
+             Conn(Addr("0.0.0.0", 9000), socket.SOCK_DGRAM, "NONE", 10),    # アプリ固有の UDP は残す
+             Conn(Addr("0.0.0.0", 4455), socket.SOCK_STREAM, "LISTEN", 12)]
+    names = {10: "Shoost.exe", 11: "msedge.exe", 12: "obs64.exe"}
+    with mock.patch.object(winproc.psutil, "net_connections", return_value=conns),          mock.patch.object(winproc.psutil, "CONN_LISTEN", "LISTEN"),          mock.patch.object(winproc.psutil, "Process", side_effect=lambda pid: mock.Mock(name=None, **{"name.return_value": names[pid]})):
+        got = winproc.listening_ports()
+    assert 5353 not in got
+    assert got[9000] == [(10, "Shoost.exe", "UDP")] and got[4455] == [(12, "obs64.exe", "TCP")]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

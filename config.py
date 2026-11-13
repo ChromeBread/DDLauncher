@@ -37,6 +37,8 @@ DEFAULT_EXTS = {   # 種類ごとの既定の拡張子（「種類を選ぶ」�
     "video": [".mp4", ".mkv", ".mov", ".webm", ".avi", ".flv", ".ts", ".m4v"],
     "audio": [".mp3", ".wav", ".ogg", ".flac", ".m4a", ".aac", ".opus"],
 }
+# 設定画面でチェックボックスとして出す拡張子。ここに足すと選べる候補が増える（既定でオンになるのは DEFAULT_EXTS だけ）
+DND_EXT_CHOICES = {k: list(v) for k, v in DEFAULT_EXTS.items()}
 ADD_MEDIA_START = ["play", "first", "stop"]
 ADD_MONITOR = ["none", "monitor", "both"]
 ADD_NAME = ["stem", "name"]
