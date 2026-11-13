@@ -5,6 +5,7 @@ import json
 import os
 import re
 import subprocess
+import threading
 import unicodedata
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, Signal
@@ -23,15 +24,18 @@ import sequencer
 import sound
 import startup_items
 import theme
+import upnp
 import winproc
 
 tr = i18n.tr
 
 # (キー, 既定の幅)。見出しは col.<キー>、説明は col.<キー>.tip（言語ファイル）
 COLS = [("name", 110), ("group", 80), ("path", 260), ("icon", 160), ("args", 120), ("delay_sec", 110),
-        ("minimized", 80), ("admin", 80), ("autostart", 110), ("obs_guard", 130), ("monitor", 170), ("process_name", 110)]
+        ("minimized", 80), ("admin", 80), ("autostart", 110), ("obs_guard", 130), ("monitor", 170), ("process_name", 110),
+        ("browser", 150)]   # 列を足すときは末尾へ（保存済みの列幅・並びを崩さないため）
 BOOL_KEYS = {"minimized", "admin", "autostart", "obs_guard"}
 MONITOR_COL = [c[0] for c in COLS].index("monitor")
+BROWSER_COL = [c[0] for c in COLS].index("browser")
 PATH_COL = [c[0] for c in COLS].index("path")
 ICON_COL = [c[0] for c in COLS].index("icon")
 DELAY_COL = [c[0] for c in COLS].index("delay_sec")
@@ -51,9 +55,9 @@ def _setup_columns(table: QTableWidget, cols, widths: list[int], prefix: str, ti
     header = table.horizontalHeader()
     header.setSectionResizeMode(QHeaderView.Interactive)
     header.setStretchLastSection(False)
-    use_saved = len(widths) == len(cols)
+    use_saved = len(widths) <= len(cols)   # 新しい版で末尾に足した列だけ既定の幅
     for i, (key, width) in enumerate(cols):
-        table.setColumnWidth(i, widths[i] if use_saved else width)
+        table.setColumnWidth(i, widths[i] if use_saved and i < len(widths) else width)
         if tips:
             table.horizontalHeaderItem(i).setToolTip(tr(f"{prefix}.{key}.tip"))
 
@@ -406,9 +410,19 @@ class SequenceTimeline(QWidget):
             prev = t
 
 
+def scrolled(page: QWidget) -> QScrollArea:
+    """タブの中身をスクロールで包む。タブごとに最小サイズが違うと、タブを切り替えたときにウィンドウが勝手に伸び縮みするため。"""
+    if isinstance(page, QScrollArea):   # 全般 / カラー / 情報 は自分で包んでいる
+        return page
+    scroll = QScrollArea(widgetResizable=True, frameShape=QScrollArea.NoFrame)
+    scroll.setWidget(page)
+    return scroll
+
+
 class SettingsDialog(QDialog):
     sound_apply = Signal(object, bool)   # サウンドプロファイルの「適用」: (プロファイル, 音量とミュートも戻すか)
     dnd_reset = Signal()   # 「D&D スペースを隣に戻す」: ランチャーにすぐ反映してもらう
+    upnp_result = Signal(object, object)   # ルーターとの通信が終わった: (画面側の続き, 結果 or 例外)。別スレッドから画面へ戻す
     colors_preview = Signal(object, int)   # カラーエディターで色 / 不透明度が変わった: (custom の色 dict / 標準なら None, 不透明度 %)
 
     def __init__(self, launcher_index: int, cfg: dict, parent=None):
@@ -419,21 +433,23 @@ class SettingsDialog(QDialog):
                                              self.opacity.value()))
         self.setWindowTitle(tr("set.title"))
         self.resize(1000, 620)   # 起動アプリの表と時間グラフが両方見える高さ
+        self.setMinimumSize(640, 480)   # どのタブでも同じ最小サイズ（入り切らない分は各タブがスクロール）
         self.cfg = copy.deepcopy(cfg)
         self.lcfg = self.cfg["launchers"][launcher_index]
         self.monitors = winproc.monitors(labels=True)
+        self.browsers = winproc.browsers()
         self.listening: dict = {}
         self.imported = None   # インポートしたら、呼び出し側がこの設定で作り直す
         self._addr_labels: list[tuple[QLabel, str]] = []   # アドレスを出すラベルと元の文字（隠すときは伏せ字に）
 
         tabs = self.tabs = QTabWidget()
-        tabs.addTab(self._apps_tab(), tr("set.tab.apps"))
-        tabs.addTab(self._ports_tab(), tr("set.tab.ports"))
-        tabs.addTab(self._general_tab(), tr("set.tab.general"))
-        tabs.addTab(self._color_tab(), tr("set.tab.colors"))
-        self.sound_tab_index = tabs.addTab(self._sound_tab(), tr("set.tab.sound"))   # Debug Mode ON のときだけ見せる
-        self.autorun_tab_index = tabs.addTab(self._autorun_tab(), tr("set.tab.autorun"))   # Debug Mode ON のときだけ見せる
-        tabs.addTab(self._info_tab(), tr("set.tab.info"))
+        tabs.addTab(scrolled(self._apps_tab()), tr("set.tab.apps"))
+        tabs.addTab(scrolled(self._ports_tab()), tr("set.tab.ports"))
+        tabs.addTab(scrolled(self._general_tab()), tr("set.tab.general"))
+        tabs.addTab(scrolled(self._color_tab()), tr("set.tab.colors"))
+        self.sound_tab_index = tabs.addTab(scrolled(self._sound_tab()), tr("set.tab.sound"))   # Debug Mode ON のときだけ見せる
+        self.autorun_tab_index = tabs.addTab(scrolled(self._autorun_tab()), tr("set.tab.autorun"))   # Debug Mode ON のときだけ見せる
+        tabs.addTab(scrolled(self._info_tab()), tr("set.tab.info"))
         tabs.currentChanged.connect(lambda _: self._fill_mini_icon())   # 起動アプリ タブで足したアプリも選べるように
         tabs.currentChanged.connect(self._ar_shown)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -488,6 +504,7 @@ class SettingsDialog(QDialog):
         header = self.table.horizontalHeader()
         header.setSectionsMovable(True)   # 列を見出しのドラッグで入れ替え（並びは記憶する）
         order = self.cfg["ui"]["app_col_order"]
+        order = order + list(range(len(order), len(COLS)))   # 新しい版で足した列は末尾に
         if sorted(order) == list(range(len(COLS))):
             for visual, logical in enumerate(order):
                 header.moveSection(header.visualIndex(logical), visual)
@@ -501,22 +518,56 @@ class SettingsDialog(QDialog):
         for app in self.lcfg["apps"]:
             self._set_row(self.table.rowCount(), app, insert=True)
 
+        # 上 = 行を足すボタン（初めての人はここから）/ 下 = 選んだ行に効くボタン
+        add_row = QHBoxLayout()
+        for key, slot, primary in (("btn.add_app", self._add_app, True), ("btn.add_url", self._add_url, False)):
+            b = QPushButton(tr(key))
+            b.clicked.connect(slot)
+            if primary:   # 最初に押すボタンなので、周りの灰色に埋もれないよう強調色で塗る
+                h = self.palette().color(QPalette.Highlight)
+                fg = self.palette().color(QPalette.HighlightedText).name()
+                b.setStyleSheet(f"""
+                    QPushButton {{ background: {h.name()}; color: {fg}; font-weight: bold; border: 1px solid {h.darker(130).name()};
+                                   border-radius: 3px; padding: 4px 12px; }}
+                    QPushButton:hover {{ background: {h.lighter(115).name()}; }}
+                    QPushButton:pressed {{ background: {h.darker(115).name()}; }}
+                    QPushButton:focus {{ border: 2px solid {fg}; }}""")   # キーボードで選んだときも分かるように
+            add_row.addWidget(b)
+        add_row.addStretch()
+
         btns = QHBoxLayout()
+        btns.addWidget(QLabel(tr("apps.row_tools")))
         self.undo_btn = QPushButton(tr("btn.undo"), enabled=False)
         self.undo_btn.clicked.connect(self._undo)
         QShortcut(QKeySequence.Undo, self.table, self._undo)
-        for text, slot in ((tr("btn.add"), self._add), (tr("btn.remove"), self._remove), ("↑", lambda: self._move(-1)),
-                           ("↓", lambda: self._move(1)), (tr("btn.browse_app"), self._browse),
-                           (tr("btn.browse_icon"), self._browse_icon)):
-            b = QPushButton(text)
-            b.clicked.connect(slot)
-            btns.addWidget(b)
-            if slot == self._remove:
-                btns.addWidget(self.undo_btn)
+        self._row_btns = []   # 行を選んでいないときは押せないようにする
+        for group in (((tr("btn.browse_app"), self._browse), (tr("btn.browse_icon"), self._browse_icon)),
+                      (("↑", lambda: self._move(-1)), ("↓", lambda: self._move(1))),
+                      ((tr("btn.remove"), self._remove),)):
+            for text, slot in group:
+                b = QPushButton(text)
+                b.clicked.connect(slot)
+                if len(text) == 1:   # ↑↓ は Windows 既定の最小幅（約 75px）だと横に間延びするので正方形に
+                    b.setFixedWidth(b.sizeHint().height())
+                btns.addWidget(b)
+                self._row_btns.append(b)
+            btns.addSpacing(12)   # 役割ごとに少し離す
+        self.undo_btn.setText("↶")   # 長い訳ではみ出すので記号に。意味はツールチップと読み上げ名で伝える
+        self.undo_btn.setToolTip(tr("btn.undo") + " (Ctrl+Z)")
+        self.undo_btn.setAccessibleName(tr("btn.undo"))
+        f = self.undo_btn.font()
+        f.setPointSizeF(f.pointSizeF() * 1.4)   # ↶ は標準の大きさだと ↑↓ より小さく見える
+        self.undo_btn.setFont(f)
+        side = self._row_btns[-1].sizeHint().height()   # 字を大きくしても ↑↓ と同じ正方形に揃える
+        self.undo_btn.setFixedSize(side, side)
+        btns.addWidget(self.undo_btn)
         btns.addStretch()
+        self.table.currentCellChanged.connect(lambda r, *_: [b.setEnabled(r >= 0) for b in self._row_btns])
+        for b in self._row_btns:
+            b.setEnabled(self.table.currentRow() >= 0)
         self.timeline = SequenceTimeline()
         tl_box = QGroupBox(tr("seq.timeline"))
-        tl_scroll = self._tl_scroll = QScrollArea(widgetResizable=True, frameShape=QScrollArea.NoFrame, maximumHeight=220)   # アプリが多くても表を潰さない
+        tl_scroll = self._tl_scroll = QScrollArea(widgetResizable=True, frameShape=QScrollArea.NoFrame, minimumHeight=SequenceTimeline.ROW * 3)   # 高さは境目のドラッグで決め、入り切らない分は縦スクロール
         tl_scroll.setWidget(self.timeline)
         QVBoxLayout(tl_box).addWidget(tl_scroll)
         self._timeline_timer = QTimer(self, singleShot=True, interval=0)   # 1 行足すとセルの数だけ変更が来るので 1 回にまとめる
@@ -528,12 +579,14 @@ class SettingsDialog(QDialog):
         top = QWidget()
         tl = QVBoxLayout(top)
         tl.setContentsMargins(0, 0, 0, 0)
+        tl.addLayout(add_row)
         tl.addWidget(self.table, 1)
         tl.addLayout(btns)
         tl.addWidget(_hint(tr("apps.hint")))
         self.app_split = QSplitter(Qt.Vertical, childrenCollapsible=False)   # 表と時間グラフの境目をドラッグで変えられる（記憶する）
         self.app_split.addWidget(top)
         self.app_split.addWidget(tl_box)
+        self.app_split.setStretchFactor(0, 1)   # ウィンドウを広げた分は表に回す
         if len(self.cfg["ui"]["app_split"]) == 2:
             self.app_split.setSizes(self.cfg["ui"]["app_split"])
         lay = QVBoxLayout(w)
@@ -544,7 +597,6 @@ class SettingsDialog(QDialog):
         apps = [self._row_app(r) for r in range(self.table.rowCount())]
         self.timeline.set_apps(apps)
         self.table.setVerticalHeaderLabels([str(r + 1) for r in range(len(apps))])
-        self._tl_scroll.setMinimumHeight(min(self.timeline.minimumHeight() + 4, 220))   # 220px までは全部見せ、それ以上はスクロール
 
     def _col_menu(self, header: QHeaderView, pos) -> None:
         c = header.logicalIndexAt(pos)
@@ -572,6 +624,16 @@ class SettingsDialog(QDialog):
         cb.setCurrentIndex(max(0, cb.findData(current)))
         return cb
 
+    def _browser_combo(self, current: str) -> QComboBox:
+        cb = QComboBox()
+        cb.addItem(tr("browser.default"), "")
+        for name, exe in self.browsers:
+            cb.addItem(name, exe)
+        if current and cb.findData(current) < 0:   # 今は入っていないブラウザの設定も消さない
+            cb.addItem(tr("browser.missing", name=os.path.basename(current)), current)
+        cb.setCurrentIndex(max(0, cb.findData(current)))
+        return cb
+
     def _set_row(self, r: int, app: dict, insert=False) -> None:
         if insert:
             self.table.insertRow(r)
@@ -580,10 +642,11 @@ class SettingsDialog(QDialog):
             if key in BOOL_KEYS:
                 item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled)
                 item.setCheckState(Qt.Checked if app.get(key) else Qt.Unchecked)
-            elif key != "monitor":
+            elif key not in ("monitor", "browser"):
                 item.setText(str(app.get(key, "")))
             self.table.setItem(r, c, item)
         self.table.setCellWidget(r, MONITOR_COL, self._monitor_combo(app.get("monitor", "")))
+        self.table.setCellWidget(r, BROWSER_COL, self._browser_combo(app.get("browser", "")))
         self.table.item(r, 0).setData(Qt.UserRole, app)   # workdir など表に無いキーを保持
 
     def _row_app(self, r: int) -> dict:
@@ -592,7 +655,7 @@ class SettingsDialog(QDialog):
             item = self.table.item(r, c)
             if key in BOOL_KEYS:
                 app[key] = item.checkState() == Qt.Checked
-            elif key == "monitor":
+            elif key in ("monitor", "browser"):
                 app[key] = self.table.cellWidget(r, c).currentData() or ""
             elif key == "delay_sec":
                 try:
@@ -614,8 +677,22 @@ class SettingsDialog(QDialog):
         self._set_row(dst, app, insert=True)
         self.table.selectRow(dst)
 
-    def _add(self):
-        self._set_row(self.table.rowCount(), dict(config.DEFAULT_APP, name=tr("apps.new_name")), insert=True)
+    def _add(self) -> int:
+        r = self.table.rowCount()
+        self._set_row(r, dict(config.DEFAULT_APP, name=tr("apps.new_name")), insert=True)
+        self.table.selectRow(r)
+        return r
+
+    def _add_app(self):
+        """ファイルを選んでから行を足す（キャンセルなら何も足さない）。表示名とパスはそのファイルで埋める。"""
+        path = self._pick_app()
+        if path:
+            self._fill_app(self._add(), path)
+
+    def _add_url(self):
+        r = self._add()
+        self.table.setCurrentCell(r, PATH_COL)
+        self.table.editItem(self.table.item(r, PATH_COL))   # そのまま URL を打てるように（アドレスを隠しているときはスイッチを案内）
 
     def _selected_row(self) -> int:
         """選んでいる行。選んでいなければ、選ぶよう案内して -1。"""
@@ -655,9 +732,20 @@ class SettingsDialog(QDialog):
         r = self._selected_row()
         if r < 0:
             return
-        path, _ = QFileDialog.getOpenFileName(self, tr("dlg.pick_app"), "", tr("dlg.pick_app_filter"))
+        path = self._pick_app()
         if path:
-            self.table.item(r, PATH_COL).setText(path.replace("/", "\\"))
+            self._fill_app(r, path)
+
+    def _pick_app(self) -> str:
+        path, _ = QFileDialog.getOpenFileName(self, tr("dlg.pick_app"), "", tr("dlg.pick_app_filter"))
+        return path.replace("/", "\\")
+
+    def _fill_app(self, r: int, path: str) -> None:
+        stem = lambda p: os.path.splitext(os.path.basename(p))[0]
+        name, old = self.table.item(r, 0), self.table.item(r, PATH_COL).text()   # 表示名は 0 列目
+        if name.text().strip() in ("", tr("apps.new_name"), stem(old)):   # 自分で付けた名前は上書きしない
+            name.setText(stem(path))
+        self.table.item(r, PATH_COL).setText(path)
 
     def _browse_icon(self):
         r = self._selected_row()
@@ -693,7 +781,9 @@ class SettingsDialog(QDialog):
             self.ip_mode.addItem(tr(f"ip.{key or 'unset'}"), key)
         self.ip_mode.setCurrentIndex(max(0, self.ip_mode.findData(self.cfg["ip_mode"])))
         self.ip_mode.setToolTip(tr("ip.tip"))
-        ip_row = QHBoxLayout()
+        self.ip_box = QWidget()   # Debug Mode ON のときだけ見せる
+        ip_row = QHBoxLayout(self.ip_box)
+        ip_row.setContentsMargins(0, 0, 0, 0)
         ip_row.addWidget(QLabel(tr("ip.label")))
         ip_row.addWidget(self.ip_mode)
         b = QPushButton(tr("ip.detect"))
@@ -701,11 +791,174 @@ class SettingsDialog(QDialog):
         ip_row.addWidget(b)
         ip_row.addStretch()
         lay = QVBoxLayout(w)
-        lay.addLayout(ip_row)
+        lay.addWidget(self.ip_box)
         lay.addWidget(self.ports)
         lay.addLayout(btns)
         lay.addWidget(self.show_all)   # ボタンと同じ行だと訳が長い言語で横にはみ出す
+        lay.addWidget(self._upnp_group())
         return w
+
+    # ---- ルーターのポート開放（Debug Mode ON のときだけ）----
+    def _upnp_group(self) -> QGroupBox:
+        g = self.upnp_box = QGroupBox(tr("upnp.title"))
+        self._router = None
+        self.upnp_result.connect(lambda then, result: then(result))
+        warning = QLabel(tr("upnp.warning"), wordWrap=True)
+        warning.setStyleSheet(f"color: {theme.C['err']}; font-weight: bold;")   # 自己責任であることを一番上ではっきり
+        self.upnp_status = QLabel()
+        self.upnp_ext_ip = QLabel(MASK)
+        self._addr_labels.append((self.upnp_ext_ip, ""))   # 配信に映らないよう「アドレス表示」に合わせて伏せ字
+        top = QHBoxLayout()
+        self.upnp_check_btn = QPushButton(tr("upnp.check"))
+        self.upnp_check_btn.clicked.connect(self._upnp_check)
+        top.addWidget(self.upnp_check_btn)
+        top.addWidget(self.upnp_status)
+        top.addStretch()
+        top.addWidget(QLabel(tr("upnp.ext_ip")))
+        top.addWidget(self.upnp_ext_ip)
+        t = self.upnp_table = QTableWidget(0, 5)
+        t.setHorizontalHeaderLabels([tr(f"upnp.col.{k}") for k in ("port", "protocol", "target", "description", "lease")])
+        t.horizontalHeader().setStretchLastSection(True)
+        t.setSelectionBehavior(QAbstractItemView.SelectRows)
+        t.setSelectionMode(QAbstractItemView.SingleSelection)
+        t.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        t.verticalHeader().setVisible(False)
+        t.setMinimumHeight(t.verticalHeader().defaultSectionSize() * 5)
+        bottom = QHBoxLayout()
+        self.upnp_proto = QComboBox()
+        for label, protos in (("TCP", ["TCP"]), ("UDP", ["UDP"]), ("TCP + UDP", ["TCP", "UDP"])):
+            self.upnp_proto.addItem(label, protos)
+        self.upnp_proto.setCurrentIndex(1)   # SRT は UDP
+        self.upnp_open_btn = QPushButton(tr("upnp.open"))
+        self.upnp_open_btn.setToolTip(tr("upnp.open.tip"))
+        self.upnp_open_btn.clicked.connect(self._upnp_open)
+        self.upnp_close_btn = QPushButton(tr("upnp.close"))
+        self.upnp_close_btn.clicked.connect(self._upnp_close)
+        for wd in (self.upnp_proto, self.upnp_open_btn, self.upnp_close_btn):
+            bottom.addWidget(wd)
+        bottom.addStretch()
+        v = QVBoxLayout(g)
+        v.addWidget(warning)
+        v.addLayout(top)
+        self.upnp_info = QLabel(wordWrap=True)
+        v.addWidget(self.upnp_info)
+        v.addWidget(t)
+        v.addLayout(bottom)
+        self._upnp_set_busy(False)
+        return g
+
+    def _upnp_run(self, work, then) -> None:
+        """work() を別スレッドで動かし（ルーターの返事を待つ間に画面を止めない）、終わったら then(結果か例外) を画面側で呼ぶ。"""
+        def run():
+            try:
+                result = work()
+            except Exception as e:   # 通信の失敗は画面で知らせる
+                result = e
+            try:
+                self.upnp_result.emit(then, result)
+            except RuntimeError:   # 待っている間に設定画面が閉じられた
+                pass
+        self._upnp_set_busy(True)
+        threading.Thread(target=run, daemon=True).start()
+
+    def _upnp_set_busy(self, busy: bool) -> None:
+        self.upnp_status.setText(tr("upnp.checking") if busy else "")
+        self.upnp_check_btn.setEnabled(not busy)
+        for b in (self.upnp_open_btn, self.upnp_close_btn):
+            b.setEnabled(not busy and self._router is not None)   # 先に「ルーターを確認」してから
+
+    def _upnp_check(self) -> None:
+        def work():
+            router = self._router or upnp.discover()
+            return router, router.external_ip(), router.mappings(), router.status()
+        self._upnp_run(work, self._upnp_checked)
+
+    def _upnp_checked(self, result) -> None:
+        if isinstance(result, Exception):
+            self._router = None
+            self._upnp_set_busy(False)
+            text = tr("upnp.none_found") if str(result) == "no router" else tr("upnp.failed", e=result)
+            message(self, tr("upnp.title"), text, warn=True)
+            return
+        self._router, ext_ip, maps, status = result
+        self.upnp_info.setText(self._upnp_info_text(status))
+        self._upnp_set_busy(False)
+        self._addr_labels = [(lb, ext_ip if lb is self.upnp_ext_ip else text) for lb, text in self._addr_labels]
+        self.upnp_ext_ip.setText(ext_ip if self.addr_btn.isChecked() else MASK)
+        t = self.upnp_table
+        t.setRowCount(0)
+        for m in maps:
+            r = t.rowCount()
+            t.insertRow(r)
+            mine = m["client"] == self._router.local_ip
+            lease = (tr("upnp.permanent") if not m["lease"] else tr("upnp.hours", h=m["lease"] // 3600) if m["lease"] >= 3600
+                     else tr("upnp.minutes", m=max(1, m["lease"] // 60)))
+            cells = [str(m["port"]), m["protocol"], tr("upnp.target.self" if mine else "upnp.target.other"), m["description"], lease]
+            for c, text in enumerate(cells):   # 宛先は IP を出さず「この PC / 他の機器」だけ（LAN の様子を映さない）
+                it = QTableWidgetItem(text)
+                it.setData(Qt.UserRole, m)
+                t.setItem(r, c, it)
+
+    def _upnp_info_text(self, status: dict) -> str:
+        """ルーターの機種・接続状態・稼働時間を 1 行に。読めなかった項目は出さない。"""
+        info = self._router.info
+        model = " ".join(dict.fromkeys(v for v in (info.get("manufacturer"), info.get("modelName"), info.get("modelNumber")) if v))
+        parts = [tr("upnp.router", v=model or info.get("friendlyName") or "?")]
+        if status.get("status"):
+            st = status["status"]
+            parts.append(tr("upnp.conn", v=tr(f"upnp.status.{st}") if st in ("Connected", "Disconnected") else st))
+        if status.get("uptime"):
+            d, h = divmod(status["uptime"] // 3600, 24)
+            parts.append(tr("upnp.uptime", v=tr("upnp.days_hours", d=d, h=h) if d else tr("upnp.hours", h=h)))
+        return "   ・   ".join(parts)
+
+    def _upnp_open(self) -> None:
+        r = self.ports.currentRow()
+        try:
+            port = int(self.ports.item(r, 0).text()) if r >= 0 else 0
+        except (AttributeError, ValueError):
+            port = 0
+        if not port:
+            message(self, tr("upnp.title"), tr("upnp.select_port"))
+            return
+        try:
+            upnp.check_port(port)
+        except upnp.UpnpError as e:
+            text = tr("upnp.dangerous", port=port, name=e) if e.code == -1 else tr("upnp.failed", e=e)
+            message(self, tr("upnp.title"), text, warn=True)
+            return
+        protos = self.upnp_proto.currentData()
+        if not confirm(self, tr("upnp.title"), tr("upnp.open_confirm", port=port, proto=" + ".join(protos))):
+            return
+        router = self._router
+        self._upnp_run(lambda: [router.open(port, p) for p in protos], self._upnp_opened)
+
+    def _upnp_opened(self, result) -> None:
+        self._upnp_set_busy(False)
+        if isinstance(result, Exception):
+            message(self, tr("upnp.title"), tr("upnp.failed", e=result), warn=True)
+        elif not all(result):   # ルーターが期限付きに対応していない = 自動では閉じない
+            message(self, tr("upnp.title"), tr("upnp.permanent_warn"), warn=True)
+        self._upnp_check()   # 開いたかどうかを一覧で見せる
+
+    def _upnp_close(self) -> None:
+        row = self.upnp_table.currentRow()
+        it = self.upnp_table.item(row, 0) if row >= 0 else None
+        if it is None:
+            message(self, tr("upnp.title"), tr("upnp.select_mapping"))
+            return
+        m = it.data(Qt.UserRole)
+        if m["client"] != self._router.local_ip:
+            message(self, tr("upnp.title"), tr("upnp.not_self"), warn=True)
+            return
+        router = self._router
+        self._upnp_run(lambda: router.close(m["port"], m["protocol"], m["client"]), self._upnp_closed)
+
+    def _upnp_closed(self, result) -> None:
+        self._upnp_set_busy(False)
+        if isinstance(result, Exception):
+            message(self, tr("upnp.title"), tr("upnp.failed", e=result), warn=True)
+        self._upnp_check()
 
     def _add_port_row(self, p: dict) -> None:
         r = self.ports.rowCount()
@@ -866,6 +1119,7 @@ class SettingsDialog(QDialog):
         self.wheel_rotate = WrapCheck(tr("gen.wheel_rotate.check"), self.lcfg["wheel_rotate"])
         self.keep_rot = WrapCheck(tr("gen.keep_rot.check"), self.lcfg["keep_rotation"])
         self.show_seq = WrapCheck(tr("gen.show_seq.check"), self.lcfg["show_seq_button"])
+        self.name_upper = WrapCheck(tr("gen.name_upper.check"), self.lcfg["name_upper"])
         self.after_seq = self._combo("after", config.AFTER_SEQUENCE, self.lcfg["after_sequence"])
         self.after_seq.setToolTip(tr("after.tip"))
         self.anim = self._combo("anim", config.ANIMATIONS, self.cfg["animation"])
@@ -932,7 +1186,7 @@ class SettingsDialog(QDialog):
                          ("add_mute", self.add_mute), ("add_loop", self.add_loop), ("add_loop_exts", self.add_loop_exts), ("add_restart", self.add_restart),
                          ("add_monitor", self.add_monitor), ("add_fit", self.add_fit), ("add_name", self.add_name),
                          ("add_conflict", self.add_conflict)]),
-            ("display", [("collapse", self.collapse), ("mini_icon", self.mini_icon), ("layout", self.layout_mode),
+            ("display", [("collapse", self.collapse), ("mini_icon", self.mini_icon), ("name_upper", self.name_upper), ("layout", self.layout_mode),
                          ("group_rows", self.group_rows), ("group_cols", self.group_cols), ("max_cols", self.max_cols),
                          ("max_rows", self.max_rows), ("wheel_rotate", self.wheel_rotate), ("keep_rot", self.keep_rot),
                          ("anim", self.anim)]),
@@ -1075,7 +1329,7 @@ class SettingsDialog(QDialog):
                          max_cols=self.max_cols.value(), max_rows=self.max_rows.value(),
                          group_max_rows=self.group_rows.value(), group_max_cols=self.group_cols.value(), keep_rotation=self.keep_rot.isChecked(),
                          wheel_rotate=self.wheel_rotate.isChecked(),
-                         show_seq_button=self.show_seq.isChecked(), after_sequence=self.after_seq.currentData(),
+                         show_seq_button=self.show_seq.isChecked(), name_upper=self.name_upper.isChecked(), after_sequence=self.after_seq.currentData(),
                          scale=self.scale.value() / 100)
         self.cfg.update(language=self.language.currentData(), ip_mode=self.ip_mode.currentData(), opacity=self.opacity.value(),
                         theme="opaque" if self.opacity.value() >= 100 else "transparent",   # 旧版に戻したときも近い見た目に
@@ -1668,6 +1922,8 @@ class SettingsDialog(QDialog):
         self.debug_box.setVisible(on)
         self.tabs.setTabVisible(self.sound_tab_index, on)
         self.tabs.setTabVisible(self.autorun_tab_index, on)
+        self.ip_box.setVisible(on)
+        self.upnp_box.setVisible(on)
         for w in (self.max_cols, self.max_rows):   # LINEAR は調整中なので Debug Mode のときだけ見せる
             self._forms["display"].setRowVisible(w, on)
         self.layout_mode.view().setRowHidden(config.LAYOUTS.index("linear"), not on)

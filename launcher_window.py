@@ -118,6 +118,25 @@ def linear_slots(apps: list[dict]) -> list[list[int]]:
     return slots
 
 
+def draw_outlined_icon(p: QPainter, icon: QIcon, rect: QRect, color: QColor, width: int) -> None:
+    """アイコンを rect の中央に描き、形（透明でない部分）に沿って color の線で縁取る。"""
+    pm = icon.pixmap(256).scaled(rect.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)   # 16px の favicon も拡大
+    x, y = rect.center().x() - pm.width() // 2, rect.center().y() - pm.height() // 2
+    edge = QPixmap(pm.size())
+    edge.setDevicePixelRatio(pm.devicePixelRatio())
+    edge.fill(Qt.transparent)
+    ep = QPainter(edge)
+    ep.drawPixmap(0, 0, pm)
+    ep.setCompositionMode(QPainter.CompositionMode_SourceIn)   # 形はそのまま、色だけ塗り替える
+    ep.fillRect(edge.rect(), color)
+    ep.end()
+    for dx in (-width, 0, width):   # 8 方向にずらして重ねると、その分だけ外へ太った影 = 縁取りになる
+        for dy in (-width, 0, width):
+            if dx or dy:
+                p.drawPixmap(x + dx, y + dy, edge)
+    p.drawPixmap(x, y, pm)
+
+
 def load_app_icon(app: dict, on_fetched=None) -> QIcon | None:
     """カスタム画像 > Web のアイコン（アイコン欄かパスが URL のとき）> exe のアイコン。on_fetched があれば Web から取りに行く。
 
@@ -146,6 +165,7 @@ class AppTile(QWidget):
     hovered = Signal(object)
     icon_ready = Signal()   # サイトのアイコンを別スレッドで取得し終えた
     members: list = []   # 重ねて隠しているタイル（マウスオーバーで横に出す）
+    upper = True   # 表示名を大文字にするか（ランチャーの設定 name_upper）
 
     def __init__(self, index: int, app: dict, scale: float, transparent: bool, parent=None):
         super().__init__(parent)
@@ -240,9 +260,8 @@ class AppTile(QWidget):
         icon_sz = min(theme.px(30, s), h - name_h - pad)
         icon_rect = QRect(box.center().x() - icon_sz // 2, pad, icon_sz, icon_sz)
         p.setOpacity(1.0 if self.running else 0.45)
-        if self.icon:   # 16px の favicon も枠いっぱいに拡大（QIcon.paint は拡大しない）
-            pm = self.icon.pixmap(256).scaled(icon_rect.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            p.drawPixmap(icon_rect.center().x() - pm.width() // 2, icon_rect.center().y() - pm.height() // 2, pm)
+        if self.icon:
+            draw_outlined_icon(p, self.icon, icon_rect, QColor(theme.C["accent"]), max(theme.px(2, s), 1))
         else:  # アイコンが取れない（未設定 / 取得中）なら頭文字
             p.setPen(QColor(theme.C["dim"]))
             p.setFont(self.name_font)
@@ -261,7 +280,7 @@ class AppTile(QWidget):
         p.drawText(ammo_rect, Qt.AlignRight | Qt.AlignBottom, ammo)
         p.setFont(self.name_font)
         p.setPen(QColor(theme.C["text"] if self.running else theme.C["dim"]))
-        name = QFontMetrics(self.name_font).elidedText(self.app.get("name", "").upper(), Qt.ElideRight, text_rect.width())
+        name = QFontMetrics(self.name_font).elidedText(self.app.get("name", "").upper() if self.upper else self.app.get("name", ""), Qt.ElideRight, text_rect.width())
         p.drawText(text_rect, Qt.AlignRight | Qt.AlignBottom, name)
 
     def enterEvent(self, e):
@@ -300,8 +319,7 @@ class MiniIcon(QWidget):
 
     def set_scale(self, s: float) -> None:
         self.s = s
-        side = theme.px(theme.BASE_TILE[1], s)   # タイルの高さと同じ正方形（小さすぎて狙いにくくならないように）
-        self.setFixedSize(side, side)
+        self.setFixedSize(theme.px(theme.BASE_TILE[0], s), theme.px(theme.BASE_TILE[1], s))   # 展開時のタイルと同じ長方形
         self.update()
 
     def paintEvent(self, _):
@@ -311,8 +329,9 @@ class MiniIcon(QWidget):
         p.drawRect(self.rect().adjusted(0, 0, -1, -1))
         if self.icon:
             side = theme.px(32, self.s)
-            r = self.rect()
-            self.icon.paint(p, r.x() + (r.width() - side) // 2, r.y() + (r.height() - side) // 2, side, side)
+            r = QRect(0, 0, side, side)
+            r.moveCenter(self.rect().center())
+            draw_outlined_icon(p, self.icon, r, QColor(theme.C["accent"]), max(theme.px(2, self.s), 1))
             return
         f = QFont("Bahnschrift SemiBold")
         f.setPixelSize(theme.px(22, self.s))
@@ -653,6 +672,7 @@ class LauncherWindow(QWidget):
         self.tiles = []
         for i, app in enumerate(lcfg["apps"]):
             t = AppTile(i, app, lcfg["scale"], transparent)
+            t.upper = lcfg["name_upper"]
             t.launch_requested.connect(self.launch_one)
             t.hovered.connect(self.open_flyout)
             self.tiles.append(t)

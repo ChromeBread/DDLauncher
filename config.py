@@ -57,6 +57,7 @@ DEFAULT_APP = {
     "monitor": "",        # 起動後にウィンドウを移すモニタ（\\.\DISPLAY2 等）。空 = 指定なし
     "autostart": True,    # 起動シーケンスに含めるか
     "obs_guard": True,    # OBS が起動している間は、クリックで開かない（配信中の押し間違い防止）。右クリックメニューからは開ける
+    "browser": "",        # path が Web アドレスのとき開くブラウザの exe。空 = Windows の既定のブラウザ
 }
 
 DEFAULT_LAUNCHER = {
@@ -83,6 +84,7 @@ DEFAULT_LAUNCHER = {
     "group_max_rows": 0,  # GROUP: 縦の上限（0 = 無制限 = 縦一列。超えた分は内側に次の列）
     "group_max_cols": 0,  # GROUP: 横の上限（0 = 無制限。列が上限を超えるなら縦を伸ばす）
     "show_seq_button": False,
+    "name_upper": True,   # タイルの表示名をすべて大文字にする（False = 入力したまま）
     "wheel_rotate": True,   # ホイール（Shift+ホイール）でアイコンを回す。False でも ▲▼ と Ctrl+ホイールは使える
     "keep_rotation": False,   # 回した並びを保存するか
     "rot": 0,             # 縦（L 字）の輪をいくつ回したか

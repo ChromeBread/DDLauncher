@@ -7,7 +7,7 @@ import sys
 
 import config
 
-VERSION = "0.2.2"
+VERSION = "0.3.0"
 DEVELOPER = "ChromeBread feat. BlackDream"
 
 FROZEN = getattr(sys, "frozen", False)   # running as the PyInstaller exe

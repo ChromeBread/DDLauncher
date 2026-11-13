@@ -30,8 +30,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 | Versi | File | Cocok untuk |
 |---|---|---|
-| Installer | `DDLauncher-0.2.2-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
-| Standalone | `DDLauncher-0.2.2-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
+| Installer | `DDLauncher-0.3.0-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
+| Standalone | `DDLauncher-0.3.0-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
 
 - Standalone: ekstrak di mana saja lalu jalankan `DDLauncher.exe`.
 - Exe-nya tidak bertanda tangan, jadi saat pertama dijalankan Windows SmartScreen ("Windows melindungi PC Anda") atau antivirus bisa memberi peringatan. Klik "Info selengkapnya" → "Tetap jalankan". Jika ingin memeriksa dulu, jalankan dari kode sumber (lihat "Untuk developer" di bawah).
@@ -102,11 +102,12 @@ Saat OBS berjalan sebagai administrator, file yang dijatuhkan dari Explorer tida
 ### Pengaturan
 
 - **Aplikasi di launcher**: seret baris (atau gunakan ↑↓) untuk mengubah urutan. Arahkan kursor ke judul kolom untuk penjelasan.
+  - "+ Tambah aplikasi…" memilih exe atau pintasan lalu mengisi nama dan path-nya. "+ Tambah alamat web" menambahkan baris untuk URL; kolom "Browser" memilih browser yang membukanya (browser default bila dibiarkan). Nama di ubin ditampilkan dengan huruf kapital; untuk menampilkannya sesuai ketikan, matikan ⚙ → "Huruf nama".
   - Jika "Gambar ikon" kosong, ikon exe yang dipakai, atau ikon situs bila path berupa URL. Isi "Gambar ikon" dengan alamat web untuk memakai ikon situs itu (atau gambarnya langsung, untuk alamat gambar).
-  - Baris yang dihapus bisa dikembalikan dengan "Urungkan" (Ctrl+Z). Linimasa di bawah tabel menunjukkan berapa detik setelah mulai tiap aplikasi dijalankan.
+  - Baris yang dihapus bisa dikembalikan dengan ↶ (Ctrl+Z). Linimasa di bawah tabel menunjukkan berapa detik setelah mulai tiap aplikasi dijalankan.
   - "Pindah ke monitor" memindahkan jendela aplikasi ke monitor itu setelah dijalankan. Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan karena batasan Windows.<br>
     <img src="locales/help/img/monitor.png" alt="Memindahkan jendela ke monitor lain" width="480">
-- **Port**: daftarkan port yang dipakai untuk melihat apakah kosong, dipakai, atau bentrok (dipakai proses tak terduga, atau terdaftar dua kali). "Bebaskan" menutup proses yang memakai port itu (dengan konfirmasi). "Deteksi" menambahkan port yang dipakai aplikasi terdaftar (OBS dari pengaturan WebSocket-nya, aplikasi lain saat sedang berjalan). Sebagian penampil komentar dan aplikasi pembaca teks yang populer di kalangan streamer dibaca dari file pengaturannya, sehingga tetap ditemukan walau tertutup. Anda memilih port mana yang ditambahkan, dan akan diberi tahu bila dua aplikasi yang saling terhubung memakai port yang berbeda. Anda juga bisa mencatat apakah alamat IP PC ini statis atau dinamis; "Periksa" mengisinya hanya dengan melihat apakah koneksi kabel / Wi-Fi memakai DHCP. DDLauncher tidak pernah membaca alamat IP itu sendiri, dan reservasi DHCP di router tetap terlihat dinamis.<br>
+- **Port**: daftarkan port yang dipakai untuk melihat apakah kosong, dipakai, atau bentrok (dipakai proses tak terduga, atau terdaftar dua kali). "Bebaskan" menutup proses yang memakai port itu (dengan konfirmasi). "Deteksi" menambahkan port yang dipakai aplikasi terdaftar (OBS dari pengaturan WebSocket-nya, aplikasi lain saat sedang berjalan). Sebagian penampil komentar dan aplikasi pembaca teks yang populer di kalangan streamer dibaca dari file pengaturannya, sehingga tetap ditemukan walau tertutup. Anda memilih port mana yang ditambahkan, dan akan diberi tahu bila dua aplikasi yang saling terhubung memakai port yang berbeda.<br>
   <img src="locales/help/img/ports.png" alt="Status port" width="480">
 - **Editor warna**: opasitas, warna (bawaan / kustom) dan enam templat. Perubahan langsung tampil di launcher, dan Batal mengembalikannya.
 - **Info**: bahasa tampilan, versi, tanggal build, nama pengembang, dan tombol Debug Mode.
@@ -146,7 +147,7 @@ Untuk membuat versi folder (`dist\DDLauncher\`) dan installer (installer memerlu
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.0 installer\DDLauncher.iss
 ```
 
 ### Daftar file

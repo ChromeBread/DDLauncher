@@ -803,6 +803,58 @@ def test_startup_resolve_target():
     assert si.resolve_target("") == ""
 
 
+def test_upnp_parse():
+    import upnp
+    # LAN 内の http だけ受け取る
+    assert upnp.parse_ssdp(b"HTTP/1.1 200 OK\r\nLOCATION: http://192.168.1.1:5000/d.xml\r\n") == "http://192.168.1.1:5000/d.xml"
+    assert upnp.parse_ssdp(b"HTTP/1.1 200 OK\r\nLocation: http://8.8.8.8/d.xml\r\n") is None
+    assert upnp.parse_ssdp(b"HTTP/1.1 200 OK\r\nLocation: file:///C:/x\r\n") is None
+    desc = (b'<root xmlns="urn:schemas-upnp-org:device-1-0"><device><manufacturer>ACME</manufacturer><modelName>RX</modelName>'
+            b'<deviceList><device><serviceList><service><serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>'
+            b'<controlURL>/ctl</controlURL></service></serviceList></device></deviceList></device></root>')
+    assert upnp.find_control(desc, "http://192.168.1.1:5000/d.xml") == ("http://192.168.1.1:5000/ctl", upnp.WAN_SERVICES[1])
+    assert upnp.device_info(desc) == {"manufacturer": "ACME", "modelName": "RX"}
+    err = (b'<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><s:Fault><detail>'
+           b'<UPnPError><errorCode>725</errorCode><errorDescription>x</errorDescription></UPnPError></detail></s:Fault></s:Body></s:Envelope>')
+    try:
+        upnp.parse_soap(err)
+        assert False
+    except upnp.UpnpError as e:
+        assert e.code == 725
+
+
+def test_upnp_guards():
+    from unittest import mock
+    import upnp
+    for port in (4455, 3389, 0, 70000):   # 危険な番号・範囲外は開けない
+        try:
+            upnp.check_port(port)
+            assert False, port
+        except upnp.UpnpError:
+            pass
+    r = upnp.Router("http://192.168.1.1/ctl", "svc", "192.168.1.10")
+    calls = []
+
+    def fake(action, args=None, timeout=5):
+        calls.append(args)
+        if args and args.get("NewLeaseDuration"):
+            raise upnp.UpnpError("x", 725)   # 期限付きを断るルーター
+        return {}
+    with mock.patch.object(r, "_call", fake):
+        assert r.open(9000, "UDP") is False
+        assert [c["NewLeaseDuration"] for c in calls] == [upnp.LEASE_SEC, 0]
+        assert calls[0]["NewInternalClient"] == "192.168.1.10"   # この PC 宛てだけ
+        calls.clear()
+        try:
+            r.close(9000, "UDP", "192.168.1.20")   # 他の機器宛ては閉じない
+            assert False
+        except upnp.UpnpError:
+            pass
+        assert calls == []
+    with mock.patch.object(r, "_call", lambda *a, **k: {"NewExternalPort": "1"}):
+        assert len(r.mappings()) == upnp.MAX_ENTRIES   # 終わりを返さないルーターでも止まる
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

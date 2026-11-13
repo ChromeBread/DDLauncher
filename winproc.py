@@ -9,6 +9,7 @@ from ctypes import wintypes
 
 import psutil
 
+from favicon import is_url
 from i18n import tr
 
 _shell32 = ctypes.WinDLL("shell32", use_last_error=True)
@@ -54,11 +55,35 @@ def launch(app: dict, admin: bool | None = None) -> tuple[bool, str]:
     use_admin = app.get("admin") if admin is None else admin
     workdir = app.get("workdir") or (os.path.dirname(path) if os.path.isfile(path) else None)
     show = SW_SHOWMINNOACTIVE if app.get("minimized") else SW_SHOWNORMAL
-    rc = _shell32.ShellExecuteW(None, "runas" if use_admin else "open", path,
-                                app.get("args") or None, workdir, show)
+    args = app.get("args") or None
+    browser = app.get("browser", "")
+    if browser and is_url(path):   # Web アドレスを指定のブラウザで開く: ブラウザの exe に URL を渡す
+        path, args, workdir = browser, f'"{path}"' + (" " + args if args else ""), None
+    rc = _shell32.ShellExecuteW(None, "runas" if use_admin else "open", path, args, workdir, show)
     if rc <= 32:  # 5=拒否（UAC キャンセル含む）, 2/3=ファイルなし
         return False, tr("launch.failed", rc=rc)
     return True, ""
+
+
+def browsers() -> list[tuple[str, str]]:
+    """Windows に登録されているブラウザ: [(表示名, exe のパス)]。「既定のアプリ」の一覧と同じ場所を読む。"""
+    found: dict[str, str] = {}
+    for root in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            with winreg.OpenKey(root, r"SOFTWARE\Clients\StartMenuInternet") as k:
+                for i in range(winreg.QueryInfoKey(k)[0]):
+                    key = winreg.EnumKey(k, i)
+                    try:
+                        name = winreg.QueryValue(k, key) or key
+                        cmd = winreg.QueryValue(k, key + r"\shell\open\command").strip()
+                    except OSError:
+                        continue
+                    exe = cmd[1:].split('"', 1)[0] if cmd.startswith('"') else cmd.split(" ", 1)[0]
+                    if os.path.isfile(exe) and os.path.basename(exe).lower() != "iexplore.exe":   # IE は今は Edge に飛ぶだけ
+                        found.setdefault(name, exe)   # ユーザー単位の登録を優先
+        except OSError:
+            pass
+    return sorted(found.items(), key=lambda kv: kv[0].lower())
 
 
 OBS_EXES = ("obs64.exe", "obs32.exe", "obs.exe")

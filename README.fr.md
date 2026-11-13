@@ -30,8 +30,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 | Version | Fichier | Pour qui |
 |---|---|---|
-| Installateur | `DDLauncher-0.2.2-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
-| Autonome | `DDLauncher-0.2.2-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
+| Installateur | `DDLauncher-0.3.0-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
+| Autonome | `DDLauncher-0.3.0-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
 
 - Version autonome : décompressez-la où vous voulez et lancez `DDLauncher.exe`.
 - L'exe n'est pas signé : au premier lancement, Windows SmartScreen (« Windows a protégé votre ordinateur ») ou votre antivirus peut afficher un avertissement. Cliquez sur « Informations complémentaires » → « Exécuter quand même ». Pour vérifier d'abord, lancez-le depuis les sources (voir « Pour les développeurs » plus bas).
@@ -102,11 +102,12 @@ Quand OBS tourne en administrateur, les fichiers déposés depuis l’Explorateu
 ### Paramètres
 
 - **Applis du lanceur** : glissez les lignes (ou utilisez ↑↓) pour les réordonner. Survolez un en-tête de colonne pour son explication.
+  - « + Ajouter une appli… » choisit un exe ou un raccourci et remplit le nom et le chemin. « + Ajouter une adresse web » ajoute une ligne pour une URL ; la colonne « Navigateur » choisit le navigateur qui l'ouvre (le navigateur par défaut si vous n'y touchez pas). Les noms des tuiles s'affichent en majuscules ; pour les afficher tels que saisis, décochez ⚙ → « Casse des noms ».
   - Si « Image d'icône » est vide, l'icône de l'exe est utilisée, ou celle du site quand le chemin est une URL. Mettez une adresse web dans « Image d'icône » pour utiliser l'icône de ce site (ou l'image elle-même, pour l'adresse d'une image).
-  - Une ligne supprimée revient avec « Annuler la suppression » (Ctrl+Z). La chronologie sous le tableau montre combien de secondes après le début chaque appli se lance.
+  - Une ligne supprimée revient avec ↶ (Ctrl+Z). La chronologie sous le tableau montre combien de secondes après le début chaque appli se lance.
   - « Écran de destination » déplace la fenêtre de l'appli vers cet écran après le lancement. Les applis lancées en administrateur ne peuvent pas être déplacées à cause d'une restriction de Windows.<br>
     <img src="locales/help/img/monitor.png" alt="Déplacer une fenêtre vers un autre écran" width="480">
-- **Ports** : enregistrez vos ports pour voir s'ils sont libres, utilisés ou en conflit (utilisés par un processus inattendu, ou enregistrés deux fois). « Libérer » ferme le processus qui utilise ce port (après confirmation). « Détecter » ajoute les ports utilisés par vos applis (OBS depuis ses paramètres WebSocket, les autres quand elles tournent). Certains lecteurs de commentaires et logiciels de synthèse vocale courants chez les streamers sont lus dans leurs fichiers de réglages, donc trouvés même fermés. Vous choisissez les ports à ajouter, et un avertissement s’affiche si deux applis reliées ne sont pas d’accord sur un port. Vous pouvez aussi noter si l'adresse IP de ce PC est fixe ou dynamique ; « Vérifier » la remplit en regardant seulement si la connexion filaire / Wi-Fi utilise le DHCP. DDLauncher ne lit jamais l'adresse IP elle-même, et une réservation DHCP sur la box apparaît quand même comme dynamique.<br>
+- **Ports** : enregistrez vos ports pour voir s'ils sont libres, utilisés ou en conflit (utilisés par un processus inattendu, ou enregistrés deux fois). « Libérer » ferme le processus qui utilise ce port (après confirmation). « Détecter » ajoute les ports utilisés par vos applis (OBS depuis ses paramètres WebSocket, les autres quand elles tournent). Certains lecteurs de commentaires et logiciels de synthèse vocale courants chez les streamers sont lus dans leurs fichiers de réglages, donc trouvés même fermés. Vous choisissez les ports à ajouter, et un avertissement s’affiche si deux applis reliées ne sont pas d’accord sur un port.<br>
   <img src="locales/help/img/ports.png" alt="État des ports" width="480">
 - **Éditeur de couleurs** : opacité, couleurs (par défaut / personnalisées) et six modèles. Les changements s'appliquent tout de suite au lanceur, et Annuler les rétablit.
 - **Infos** : langue de l'interface, version, date de compilation, nom du développeur et interrupteur Debug Mode.
@@ -146,7 +147,7 @@ Pour créer la version dossier (`dist\DDLauncher\`) et l'installateur (l'install
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.2.2 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.0 installer\DDLauncher.iss
 ```
 
 ### Fichiers
