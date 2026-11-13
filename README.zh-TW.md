@@ -30,8 +30,8 @@
 
 | 版本 | 檔案 | 適合 |
 |---|---|---|
-| 安裝版 | `DDLauncher-0.3.0-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
-| 免安裝版 | `DDLauncher-0.3.0-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
+| 安裝版 | `DDLauncher-0.3.1-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
+| 免安裝版 | `DDLauncher-0.3.1-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
 
 - 免安裝版：把 zip 解壓縮到任意位置，執行 `DDLauncher.exe`。
 - 因為 exe 沒有簽章，第一次啟動時 Windows SmartScreen（「Windows 已保護您的電腦」）或防毒軟體可能會警告。點「其他資訊」→「仍要執行」即可啟動。若想先確認內容，請依下方「開發者資訊」中的「從原始碼執行」使用。
@@ -103,7 +103,7 @@ OBS 以系統管理員權限執行時，從檔案總管拖放的檔案到不了 
 
 - **啟動器上的應用程式**：拖曳列（或用 ↑↓）重新排序。滑鼠移到欄標題上可看各欄說明。
   - 用「＋ 新增應用程式…」選擇 exe 或捷徑，就會新增已填好顯示名稱與路徑的列。「＋ 新增網址」會新增網址用的列；網址可在「瀏覽器」欄選擇用哪個瀏覽器開啟（不變更則使用預設瀏覽器）。圖塊上的顯示名稱會以大寫顯示；想照輸入的樣子顯示時，請取消勾選 ⚙ →「顯示名稱」。
-  - 「圖示圖片」留空時使用 exe 的圖示，路徑為 URL 時使用網站圖示。在圖示圖片填入網址，會使用該網站的圖示（若是圖片網址則使用該圖片）。
+  - 「圖示圖片」留空時使用 exe 的圖示，路徑為 URL 時使用網站圖示。在圖示圖片填入網址，會使用該網站的圖示（若是圖片網址則使用該圖片）。網站圖示取得一次後會存在這台電腦上持續使用，所以網站換了圖示也會維持舊的；把 ⚙ →「網站圖示」設為「每次啟動時重新取得」，DDLauncher 每次啟動都會重新取得。
   - 刪除的列可用「↶」按鈕（Ctrl+Z）還原。表格下方的時間軸會顯示各應用程式在開始後幾秒啟動。
   - 選擇「啟動後移至的螢幕」後，啟動後會把視窗移到該螢幕。以系統管理員權限啟動的應用程式因 Windows 的限制無法移動。<br>
     <img src="locales/help/img/monitor.png" alt="把視窗移到其他螢幕" width="480">
@@ -147,7 +147,7 @@ py -m venv .venv
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.1 installer\DDLauncher.iss
 ```
 
 ### 檔案結構

@@ -30,8 +30,8 @@ Download one of these from [Releases](https://github.com/ChromeBread/DDLauncher/
 
 | Version | File | Good for |
 |---|---|---|
-| Installer | `DDLauncher-0.3.0-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
-| Standalone | `DDLauncher-0.3.0-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
+| Installer | `DDLauncher-0.3.1-windows-x64-setup.exe` | A Start menu entry, and removal from Windows "Apps" |
+| Standalone | `DDLauncher-0.3.1-windows-x64-portable.zip` | No installation. Delete the folder to remove it |
 
 - Standalone: unzip it anywhere and run `DDLauncher.exe`.
 - The exe isn't signed, so on first launch Windows SmartScreen ("Windows protected your PC") or your antivirus may warn you. Click "More info" → "Run anyway". If you'd rather check first, run it from source (see "For developers" below).
@@ -103,7 +103,7 @@ Even when OBS runs as administrator and refuses drops from Explorer, dropping on
 
 - **Apps on the launcher**: drag rows (or use ↑↓) to reorder. Hover a column heading for an explanation.
   - "+ Add app…" picks an exe or shortcut and fills in the name and path for you. "+ Add web address" adds a row for a URL; the "Browser" column chooses which browser opens it (your default browser if left as is). Names on the tiles are shown in capitals; to show them as typed, turn off ⚙ → "Name case".
-  - If "Icon image" is empty, the exe's icon is used, or the site's icon when the path is a URL. Put a web address in "Icon image" to use that site's icon (or the image itself, for an image's address).
+  - If "Icon image" is empty, the exe's icon is used, or the site's icon when the path is a URL. Put a web address in "Icon image" to use that site's icon (or the image itself, for an image's address). Site icons are downloaded once and kept on this PC, so a site that changes its icon keeps the old one; set ⚙ → "Site icons" to "Fetch again at every start" to refresh them each time DDLauncher starts.
   - A removed row comes back with ↶ (Ctrl+Z). The timeline under the table shows how many seconds after the start each app launches.
   - "Move to monitor" moves the app's window to that monitor after it starts. Apps started as administrator can't be moved because of a Windows restriction.<br>
     <img src="locales/help/img/monitor.png" alt="Moving a window to another monitor" width="480">
@@ -147,7 +147,7 @@ To build the folder version (`dist\DDLauncher\`) and the installer (the installe
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.1 installer\DDLauncher.iss
 ```
 
 ### Files

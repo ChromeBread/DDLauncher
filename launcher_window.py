@@ -5,7 +5,7 @@ import time
 
 from PySide6.QtCore import (QAbstractAnimation, QEvent, QFileInfo, QPoint, QPropertyAnimation, QRect, QSize,
                             Qt, QTimer, Signal)
-from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QCursor, QFont, QFontMetrics, QGuiApplication, QIcon, QPainter, QPen, QPixmap, QRegion
 from PySide6.QtWidgets import (QApplication, QCheckBox, QDialog, QDialogButtonBox, QFileIconProvider, QFrame, QGridLayout, QHBoxLayout,
                                QLabel, QMenu, QMessageBox, QTextBrowser, QToolButton, QVBoxLayout, QWidget)
 
@@ -151,12 +151,23 @@ def load_app_icon(app: dict, on_fetched=None) -> QIcon | None:
         cached = favicon.cache_path(web)
         pm = QPixmap(cached) if os.path.exists(cached) else QPixmap()
         if not pm.isNull():
+            if on_fetched and favicon.want_refresh(web):   # 保存済みを出しつつ裏で取り直す（取れなければ前のまま）
+                favicon.fetch(web, on_fetched)
             return QIcon(pm)
         if on_fetched:   # 未取得 / 画像でなかった（404 ページ等）→ 取り直す
             favicon.fetch(web, on_fetched)
     if path and os.path.exists(path):
-        return QFileIconProvider().icon(QFileInfo(path))
+        return trim_icon(QFileIconProvider().icon(QFileInfo(path)))
     return None
+
+
+def trim_icon(icon: QIcon) -> QIcon:
+    """透明な余白を切り落とす。大きいアイコンを持たない exe は、Windows が 256px の真ん中に小さく置いて返すため。"""
+    pm = icon.pixmap(256)
+    if pm.isNull() or not pm.hasAlphaChannel():
+        return icon
+    r = QRegion(pm.mask()).boundingRect()
+    return QIcon(pm.copy(r)) if r.isValid() and r != pm.rect() else icon
 
 
 class AppTile(QWidget):

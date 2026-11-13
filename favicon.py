@@ -10,6 +10,8 @@ import config
 CACHE_DIR = os.path.join(config.CONFIG_DIR, "favicons")
 MAX_BYTES = 512 * 1024
 IMAGE_EXT = (".png", ".jpg", ".jpeg", ".ico", ".gif", ".bmp", ".webp")
+refresh_on_launch = False   # True = 保存済みでも、起動してから 1 回だけ取り直す（main が設定から入れる）
+_refreshed: set[str] = set()   # この起動中に取り直した保存先（設定画面の OK で作り直すたびに取り直さない）
 
 
 def is_url(path: str) -> bool:
@@ -24,6 +26,15 @@ def cache_path(url: str) -> str:
     """サイトのアイコンはサイトごとに 1 つ、画像の URL は URL ごとに 1 つ保存する。"""
     key = url if is_image_url(url) else urlsplit(url).netloc.lower()
     return os.path.join(CACHE_DIR, hashlib.sha1(key.encode()).hexdigest()[:16] + ".ico")
+
+
+def want_refresh(url: str) -> bool:
+    """起動ごとに取り直す設定で、この起動中にまだ取り直していなければ True（呼ぶと取り直し済みにする）。"""
+    key = cache_path(url)
+    if not refresh_on_launch or key in _refreshed:
+        return False
+    _refreshed.add(key)
+    return True
 
 
 def fetch(url: str, done) -> None:

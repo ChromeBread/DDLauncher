@@ -855,6 +855,20 @@ def test_upnp_guards():
         assert len(r.mappings()) == upnp.MAX_ENTRIES   # 終わりを返さないルーターでも止まる
 
 
+def test_favicon_refresh_once_per_launch():
+    import favicon
+    favicon._refreshed.clear()
+    favicon.refresh_on_launch = False
+    assert not favicon.want_refresh("https://example.com/a")
+    favicon.refresh_on_launch = True
+    assert favicon.want_refresh("https://example.com/a")
+    assert not favicon.want_refresh("https://example.com/b")   # 同じサイト = 同じ保存先は 1 回だけ
+    favicon.refresh_on_launch = False
+    favicon._refreshed.clear()
+    assert config.normalize({"favicon_refresh": "bogus"})["favicon_refresh"] == "keep"
+    assert config.normalize({"favicon_refresh": "launch"})["favicon_refresh"] == "launch"
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

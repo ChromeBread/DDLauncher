@@ -12,7 +12,7 @@ from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QFontMetrics, QGuiApplication, QIcon, QKeySequence, QPainter, QPalette, QPen, QShortcut
 from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QAbstractScrollArea, QAbstractSpinBox, QApplication, QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFrame,
                                QFileDialog, QFormLayout, QGridLayout, QHBoxLayout, QGroupBox, QInputDialog, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMenu,
-                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStyle, QStyledItemDelegate, QStyleOptionFrame, QTableView, QTableWidget,
+                               QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QSplitterHandle, QStyle, QStyledItemDelegate, QStyleOptionFrame, QTableView, QTableWidget,
                                QTableWidgetItem, QTabWidget, QToolTip, QVBoxLayout, QWidget)
 
 import about
@@ -357,6 +357,30 @@ def fit_columns(table: QTableView, cols, contents: bool) -> None:
         table.setColumnWidth(c, max(w, 36))
 
 
+class GripSplitter(QSplitter):
+    """境目に「ここを掴める」と分かるつまみを描く QSplitter。標準の境目は細く無地で、あることに気付けない。"""
+
+    class Handle(QSplitterHandle):
+        def paintEvent(self, _):
+            p = QPainter(self)
+            p.setRenderHint(QPainter.Antialiasing)
+            p.setPen(Qt.NoPen)
+            p.setBrush(self.palette().color(QPalette.Highlight if self.underMouse() else QPalette.Mid))   # 乗せると強調色
+            r = self.rect()
+            vertical = self.orientation() == Qt.Vertical
+            w, h = (min(72, r.width()), 4) if vertical else (4, min(72, r.height()))
+            p.drawRoundedRect(QRectF(r.center().x() - w / 2, r.center().y() - h / 2, w, h), 2, 2)
+
+        def enterEvent(self, e):
+            self.update()
+
+        def leaveEvent(self, e):
+            self.update()
+
+    def createHandle(self):
+        return self.Handle(self.orientation(), self)
+
+
 class SequenceTimeline(QWidget):
     """起動シーケンスの時間グラフ。1 行 = 起動するアプリ、横軸 = 開始からの秒数。待ち時間は前の印からの線で見せる。"""
     ROW, NAME_W, PAD = 20, 140, 8
@@ -428,9 +452,11 @@ class SettingsDialog(QDialog):
     def __init__(self, launcher_index: int, cfg: dict, parent=None):
         super().__init__(parent)
         self._preview_timer = QTimer(self, singleShot=True, interval=30)   # 色選択のドラッグ中に描き直しすぎない
-        self._preview_timer.timeout.connect(
-            lambda: self.colors_preview.emit(dict(self.colors) if self.color_mode.currentData() == "custom" else None,
-                                             self.opacity.value()))
+        self._preview_timer.timeout.connect(self._emit_preview)
+        # カラーエディターで色のボタンにマウスを乗せている間、その色を使う部分をランチャー上でゆっくり虹色に変える
+        self._glow_key, self._glow_t = None, 0.0
+        self._glow_timer = QTimer(self, interval=100)   # 10 回/秒。スタイルを作り直すので速くしすぎない
+        self._glow_timer.timeout.connect(self._glow_step)
         self.setWindowTitle(tr("set.title"))
         self.resize(1000, 620)   # 起動アプリの表と時間グラフが両方見える高さ
         self.setMinimumSize(640, 480)   # どのタブでも同じ最小サイズ（入り切らない分は各タブがスクロール）
@@ -492,6 +518,7 @@ class SettingsDialog(QDialog):
 
     def done(self, r):
         self._preview_timer.stop()   # 閉じた後に色が届いて、キャンセルの「元に戻す」を上書きしないように
+        self._glow_timer.stop()
         QApplication.instance().removeEventFilter(self)
         super().done(r)
 
@@ -513,6 +540,8 @@ class SettingsDialog(QDialog):
             h.setContextMenuPolicy(Qt.CustomContextMenu)
             h.customContextMenuRequested.connect(lambda pos, hh=h: self._col_menu(hh, pos))
         self.table.row_moved.connect(self._move_row)
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)   # 右クリック: 編集したい項目を選ぶ（ダブルクリックを知らなくても編集できる）
+        self.table.customContextMenuRequested.connect(self._row_menu)
         self.table.itemChanged.connect(self._clean_delay)
         self._removed: list[tuple[int, dict]] = []   # 削除した行（元に戻す用）
         for app in self.lcfg["apps"]:
@@ -583,15 +612,50 @@ class SettingsDialog(QDialog):
         tl.addWidget(self.table, 1)
         tl.addLayout(btns)
         tl.addWidget(_hint(tr("apps.hint")))
-        self.app_split = QSplitter(Qt.Vertical, childrenCollapsible=False)   # 表と時間グラフの境目をドラッグで変えられる（記憶する）
+        self.app_split = GripSplitter(Qt.Vertical, childrenCollapsible=False)   # 表と時間グラフの境目をドラッグで変えられる（記憶する）
+        self.app_split.setHandleWidth(12)   # 既定は細すぎて掴みにくい
         self.app_split.addWidget(top)
         self.app_split.addWidget(tl_box)
         self.app_split.setStretchFactor(0, 1)   # ウィンドウを広げた分は表に回す
         if len(self.cfg["ui"]["app_split"]) == 2:
             self.app_split.setSizes(self.cfg["ui"]["app_split"])
+        else:   # 初めて開いたときは、時間グラフを中身が収まる高さ（上限 220px）にする
+            QTimer.singleShot(0, lambda: self.app_split.setSizes(
+                [10 ** 5, min(self.timeline.minimumHeight(), 220) + tl_box.sizeHint().height() - tl_scroll.sizeHint().height()]))
         lay = QVBoxLayout(w)
         lay.addWidget(self.app_split)
         return w
+
+    def _row_menu(self, pos) -> None:
+        r = self.table.rowAt(pos.y())
+        if r < 0:
+            return
+        self.table.selectRow(r)
+        self.table.setCurrentCell(r, self.table.currentColumn() if self.table.currentColumn() >= 0 else 0)
+        menu = QMenu(self)
+        menu.addAction(tr("btn.browse_app"), self._browse)
+        menu.addAction(tr("btn.browse_icon"), self._browse_icon)
+        menu.addSeparator()
+        sub = menu.addMenu(tr("apps.edit_item"))
+        header = self.table.horizontalHeader()
+        for v in range(header.count()):   # 見出しの今の並び順で出す
+            c = header.logicalIndex(v)
+            sub.addAction(tr(f"col.{COLS[c][0]}"), lambda c=c: self._edit_cell(r, c))
+        menu.exec(self.table.viewport().mapToGlobal(pos))
+
+    def _edit_cell(self, r: int, c: int) -> None:
+        """チェックの列は切り替え、プルダウンの列は開き、文字の列は入力できる状態にする。"""
+        self.table.setCurrentCell(r, c)
+        self.table.scrollTo(self.table.model().index(r, c))
+        combo = self.table.cellWidget(r, c)
+        if isinstance(combo, QComboBox):
+            combo.setFocus()
+            combo.showPopup()
+        elif COLS[c][0] in BOOL_KEYS:
+            item = self.table.item(r, c)
+            item.setCheckState(Qt.Unchecked if item.checkState() == Qt.Checked else Qt.Checked)
+        else:
+            self.table.editItem(self.table.item(r, c))   # アドレスを隠している列なら、スイッチを案内する
 
     def _update_timeline(self) -> None:
         apps = [self._row_app(r) for r in range(self.table.rowCount())]
@@ -1123,6 +1187,8 @@ class SettingsDialog(QDialog):
         self.after_seq = self._combo("after", config.AFTER_SEQUENCE, self.lcfg["after_sequence"])
         self.after_seq.setToolTip(tr("after.tip"))
         self.anim = self._combo("anim", config.ANIMATIONS, self.cfg["animation"])
+        self.favicon_refresh = self._combo("favicon", config.FAVICON_REFRESH, self.cfg["favicon_refresh"])
+        self.favicon_refresh.setToolTip(tr("favicon.tip"))
         self.startup = WrapCheck(tr("gen.startup.check"), winproc.is_startup_enabled())
         obs = self.cfg["obs"]
         self.host = MaskedLineEdit(obs["host"])
@@ -1189,7 +1255,7 @@ class SettingsDialog(QDialog):
             ("display", [("collapse", self.collapse), ("mini_icon", self.mini_icon), ("name_upper", self.name_upper), ("layout", self.layout_mode),
                          ("group_rows", self.group_rows), ("group_cols", self.group_cols), ("max_cols", self.max_cols),
                          ("max_rows", self.max_rows), ("wheel_rotate", self.wheel_rotate), ("keep_rot", self.keep_rot),
-                         ("anim", self.anim)]),
+                         ("anim", self.anim), ("favicon", self.favicon_refresh)]),
             ("startup", [("show_seq", self.show_seq), ("after_seq", self.after_seq), ("startup", self.startup)]),
             ("obs", [("obs_host", self.host),("obs_port", self.port), ("obs_password", password_row), ("scene", self.scene)]),
         )
@@ -1249,6 +1315,8 @@ class SettingsDialog(QDialog):
         for i, key in enumerate(theme.CUSTOM_KEYS):
             b = QPushButton(tr(f"color.{key}"))
             b.clicked.connect(lambda _=False, k=key: self._pick_color(k))
+            b.enterEvent = lambda e, k=key: self._glow(k)   # どこの色かをランチャー上で見せる
+            b.leaveEvent = lambda e: self._glow(None)
             self.color_btns[key] = b
             g.addWidget(b, i // 2, i % 2)
         reset = QPushButton(tr("color.reset"))
@@ -1271,8 +1339,35 @@ class SettingsDialog(QDialog):
             b.setText(f"{tr(f'color.{key}')}  {c.name()}")
         self._preview_timer.start()
 
+    def _emit_preview(self) -> None:
+        colors = dict(self.colors) if self.color_mode.currentData() == "custom" else None
+        if colors is not None and self._glow_key:
+            colors[self._glow_key] = self._glow_color()
+        self.colors_preview.emit(colors, self.opacity.value())
+
+    def _glow(self, key: str | None) -> None:
+        """マウスを乗せた色の部分を光らせる / 止めて元の色に戻す。"""
+        self._glow_key, self._glow_t = key, 0.0
+        if key and winproc.animations_enabled() and self.anim.currentData() != "off":   # アニメーションを切っている人には動かさない
+            self._glow_timer.start()
+        else:
+            self._glow_timer.stop()
+        self._emit_preview()
+
+    def _glow_step(self) -> None:
+        self._glow_t += self._glow_timer.interval() / 1000
+        self._emit_preview()
+
+    def _glow_color(self) -> str:
+        """色相だけを 4 秒で 1 周させる（明るさは一定）。点滅しないので目が痛くならない。
+        Windows のアニメーション効果が OFF なら、動かさずに目立つ色 1 色で示す。"""
+        if not self._glow_timer.isActive():
+            return "#ff4fd8"
+        return QColor.fromHslF((self._glow_t / 4.0) % 1.0, 0.85, 0.6).name()
+
     def _pick_color(self, key: str) -> None:
         """選んでいる途中の色もランチャーに反映する。キャンセルしたら元の色に戻す。"""
+        self._glow(None)   # 選ぶ画面では本当の色を見せる
         old = self.colors.get(key)
         dlg = QColorDialog(QColor(self.colors.get(key, theme.DEFAULT_C[key])), self)
         dlg.setWindowTitle(tr(f"color.{key}"))
@@ -1334,7 +1429,8 @@ class SettingsDialog(QDialog):
         self.cfg.update(language=self.language.currentData(), ip_mode=self.ip_mode.currentData(), opacity=self.opacity.value(),
                         theme="opaque" if self.opacity.value() >= 100 else "transparent",   # 旧版に戻したときも近い見た目に
                         color_mode=self.color_mode.currentData(), colors=dict(self.colors),
-                        animation=self.anim.currentData(), debug=self.debug_btn.isChecked())
+                        animation=self.anim.currentData(), favicon_refresh=self.favicon_refresh.currentData(),
+                        debug=self.debug_btn.isChecked())
         self.cfg["obs"].update(host=self.host.text().strip(), port=self.port.value(),
                                password=self.password.text(), target_scene=self.scene.text().strip(),
                                add={"visible": self.add_visible.isChecked(), "media_start": self.add_start.currentData(),

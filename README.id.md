@@ -30,8 +30,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 | Versi | File | Cocok untuk |
 |---|---|---|
-| Installer | `DDLauncher-0.3.0-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
-| Standalone | `DDLauncher-0.3.0-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
+| Installer | `DDLauncher-0.3.1-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
+| Standalone | `DDLauncher-0.3.1-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
 
 - Standalone: ekstrak di mana saja lalu jalankan `DDLauncher.exe`.
 - Exe-nya tidak bertanda tangan, jadi saat pertama dijalankan Windows SmartScreen ("Windows melindungi PC Anda") atau antivirus bisa memberi peringatan. Klik "Info selengkapnya" → "Tetap jalankan". Jika ingin memeriksa dulu, jalankan dari kode sumber (lihat "Untuk developer" di bawah).
@@ -103,7 +103,7 @@ Saat OBS berjalan sebagai administrator, file yang dijatuhkan dari Explorer tida
 
 - **Aplikasi di launcher**: seret baris (atau gunakan ↑↓) untuk mengubah urutan. Arahkan kursor ke judul kolom untuk penjelasan.
   - "+ Tambah aplikasi…" memilih exe atau pintasan lalu mengisi nama dan path-nya. "+ Tambah alamat web" menambahkan baris untuk URL; kolom "Browser" memilih browser yang membukanya (browser default bila dibiarkan). Nama di ubin ditampilkan dengan huruf kapital; untuk menampilkannya sesuai ketikan, matikan ⚙ → "Huruf nama".
-  - Jika "Gambar ikon" kosong, ikon exe yang dipakai, atau ikon situs bila path berupa URL. Isi "Gambar ikon" dengan alamat web untuk memakai ikon situs itu (atau gambarnya langsung, untuk alamat gambar).
+  - Jika "Gambar ikon" kosong, ikon exe yang dipakai, atau ikon situs bila path berupa URL. Isi "Gambar ikon" dengan alamat web untuk memakai ikon situs itu (atau gambarnya langsung, untuk alamat gambar). Ikon situs diunduh sekali dan disimpan di PC ini, jadi jika situs mengganti ikonnya, yang lama tetap dipakai; atur ⚙ → "Ikon situs" ke "Ambil ulang setiap mulai" agar diperbarui setiap DDLauncher dijalankan.
   - Baris yang dihapus bisa dikembalikan dengan ↶ (Ctrl+Z). Linimasa di bawah tabel menunjukkan berapa detik setelah mulai tiap aplikasi dijalankan.
   - "Pindah ke monitor" memindahkan jendela aplikasi ke monitor itu setelah dijalankan. Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan karena batasan Windows.<br>
     <img src="locales/help/img/monitor.png" alt="Memindahkan jendela ke monitor lain" width="480">
@@ -147,7 +147,7 @@ Untuk membuat versi folder (`dist\DDLauncher\`) dan installer (installer memerlu
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.1 installer\DDLauncher.iss
 ```
 
 ### Daftar file

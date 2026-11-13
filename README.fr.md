@@ -30,8 +30,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 | Version | Fichier | Pour qui |
 |---|---|---|
-| Installateur | `DDLauncher-0.3.0-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
-| Autonome | `DDLauncher-0.3.0-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
+| Installateur | `DDLauncher-0.3.1-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
+| Autonome | `DDLauncher-0.3.1-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
 
 - Version autonome : décompressez-la où vous voulez et lancez `DDLauncher.exe`.
 - L'exe n'est pas signé : au premier lancement, Windows SmartScreen (« Windows a protégé votre ordinateur ») ou votre antivirus peut afficher un avertissement. Cliquez sur « Informations complémentaires » → « Exécuter quand même ». Pour vérifier d'abord, lancez-le depuis les sources (voir « Pour les développeurs » plus bas).
@@ -103,7 +103,7 @@ Quand OBS tourne en administrateur, les fichiers déposés depuis l’Explorateu
 
 - **Applis du lanceur** : glissez les lignes (ou utilisez ↑↓) pour les réordonner. Survolez un en-tête de colonne pour son explication.
   - « + Ajouter une appli… » choisit un exe ou un raccourci et remplit le nom et le chemin. « + Ajouter une adresse web » ajoute une ligne pour une URL ; la colonne « Navigateur » choisit le navigateur qui l'ouvre (le navigateur par défaut si vous n'y touchez pas). Les noms des tuiles s'affichent en majuscules ; pour les afficher tels que saisis, décochez ⚙ → « Casse des noms ».
-  - Si « Image d'icône » est vide, l'icône de l'exe est utilisée, ou celle du site quand le chemin est une URL. Mettez une adresse web dans « Image d'icône » pour utiliser l'icône de ce site (ou l'image elle-même, pour l'adresse d'une image).
+  - Si « Image d'icône » est vide, l'icône de l'exe est utilisée, ou celle du site quand le chemin est une URL. Mettez une adresse web dans « Image d'icône » pour utiliser l'icône de ce site (ou l'image elle-même, pour l'adresse d'une image). Les icônes des sites sont téléchargées une fois et gardées sur ce PC : si un site change d'icône, l'ancienne reste. Réglez ⚙ → « Icônes des sites » sur « Retélécharger à chaque démarrage » pour les mettre à jour à chaque lancement de DDLauncher.
   - Une ligne supprimée revient avec ↶ (Ctrl+Z). La chronologie sous le tableau montre combien de secondes après le début chaque appli se lance.
   - « Écran de destination » déplace la fenêtre de l'appli vers cet écran après le lancement. Les applis lancées en administrateur ne peuvent pas être déplacées à cause d'une restriction de Windows.<br>
     <img src="locales/help/img/monitor.png" alt="Déplacer une fenêtre vers un autre écran" width="480">
@@ -147,7 +147,7 @@ Pour créer la version dossier (`dist\DDLauncher\`) et l'installateur (l'install
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.0 installer\DDLauncher.iss
+iscc /DAppVersion=0.3.1 installer\DDLauncher.iss
 ```
 
 ### Fichiers

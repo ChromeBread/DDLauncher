@@ -26,6 +26,7 @@ CORNERS = ["top_left", "top_right", "bottom_left", "bottom_right"]
 THEMES = ["opaque", "transparent"]
 COLOR_MODES = ["default", "custom"]
 ANIMATIONS = ["full", "reduced", "off"]
+FAVICON_REFRESH = ["keep", "launch"]   # サイトのアイコン: 一度取ったら使い続ける / 起動するたびに取り直す
 LAYOUTS = ["linear", "group"]
 AFTER_SEQUENCE = ["none", "minimize", "hide"]
 IP_MODES = ["", "static", "dynamic", "mixed"]   # mixed = 有線と Wi-Fi などで固定と自動が混在
@@ -107,6 +108,7 @@ DEFAULTS = {
     "color_mode": "default",   # custom = colors の色を使う（default に戻しても colors は消さない）
     "colors": {},         # theme.CUSTOM_KEYS → "#rrggbb"。変えた色だけ入る
     "animation": "full",
+    "favicon_refresh": "keep",
     "obs": {"host": "localhost", "port": 4455, "password": "", "target_scene": "", "add": {
         # D&D で OBS に追加するソースの初期状態（既定は今までと同じ: 表示・すぐ再生・0 dB・ファイル名）
         "visible": True,         # シーン上で表示するか
@@ -244,6 +246,8 @@ def normalize(cfg: dict) -> dict:
     cfg["colors"] = {str(k): v.lower() for k, v in colors.items() if isinstance(v, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", v)}
     if cfg["animation"] not in ANIMATIONS:
         cfg["animation"] = "full"
+    if cfg["favicon_refresh"] not in FAVICON_REFRESH:
+        cfg["favicon_refresh"] = "keep"
     add, default = cfg["obs"]["add"] if isinstance(cfg["obs"].get("add"), dict) else {}, DEFAULTS["obs"]["add"]
     for key in ("visible", "mute", "loop", "restart", "fit"):
         add[key] = bool(add.get(key, default[key]))
@@ -315,7 +319,7 @@ def save(cfg: dict) -> None:
 SECTIONS = {
     "launchers": ["launchers"],                                   # ランチャーとアプリ
     "ports": ["ports", "ip_mode"],                                # ポート管理
-    "general": ["language", "theme", "opacity", "color_mode", "colors", "animation", "ui", "debug"],  # 全般
+    "general": ["language", "theme", "opacity", "color_mode", "colors", "animation", "favicon_refresh", "ui", "debug"],  # 全般
     "obs": ["obs"],                                               # OBS 接続（パスワードを含む）
     "sound": ["sound"],                                           # サウンドデバイスのプロファイル
 }

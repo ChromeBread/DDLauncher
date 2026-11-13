@@ -36,6 +36,14 @@ RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 RUN_NAME = "DDLauncher"
 
 
+def animations_enabled() -> bool:
+    """Windows の「アニメーション効果」が ON か（OFF の人には色を動かさない）。読めなければ ON 扱い。"""
+    on = wintypes.BOOL(True)
+    if not ctypes.windll.user32.SystemParametersInfoW(0x1042, 0, ctypes.byref(on), 0):   # SPI_GETCLIENTAREAANIMATION
+        return True
+    return bool(on.value)
+
+
 def is_admin() -> bool:
     """このランチャー自身が管理者権限か。"""
     try:

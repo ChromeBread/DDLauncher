@@ -11,6 +11,7 @@ from PySide6.QtCore import QLockFile, QObject, QTimer
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 import config
+import favicon
 import i18n
 import sound
 import theme
@@ -67,6 +68,7 @@ class Controller(QObject):
         m.addAction(tr("tray.quit"), QApplication.quit)
 
     def build(self) -> None:
+        favicon.refresh_on_launch = self.cfg["favicon_refresh"] == "launch"
         theme.apply_colors(self.cfg["colors"] if self.cfg["color_mode"] == "custom" else None, self.cfg["opacity"])   # 窓を作る前に（色は作るときに読む）
         self._fill_tray_menu()
         for w in self.windows:
