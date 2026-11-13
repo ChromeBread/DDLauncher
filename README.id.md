@@ -13,12 +13,9 @@ Launcher ringan untuk streamer yang selalu standby di pojok layar (Windows).
 - Biasanya hanya menampilkan satu ikon kecil di pojok, dan baru terbuka saat kursor diarahkan ke sana.
 
 <p>
-<img src="docs/images/launcher-en.png" alt="Launcher" height="300">
-<img src="docs/images/settings-apps-en.png" alt="Pengaturan: aplikasi di launcher dan linimasa urutan peluncuran" width="600">
-</p>
-<p>
-<img src="docs/images/settings-colors-en.png" alt="Editor warna" width="420">
-<img src="docs/images/settings-info-en.png" alt="Halaman info: bahasa, versi, tanggal build, Debug Mode" width="420">
+<img src="docs/images/launcher-en.png" alt="Launcher" height="260">
+<img src="docs/images/dnd-en.png" alt="Mode D&D: launcher dan ruang D&D" height="260">
+<img src="docs/images/settings-apps-en.png" alt="Pengaturan: aplikasi di launcher dan linimasa urutan peluncuran" height="260">
 </p>
 
 ## Kebutuhan sistem
@@ -33,8 +30,8 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 
 | Versi | File | Cocok untuk |
 |---|---|---|
-| Installer | `DDLauncher-0.3.2-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
-| Standalone | `DDLauncher-0.3.2-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
+| Installer | `DDLauncher-1.0.0-windows-x64-setup.exe` | Masuk ke menu Start, dan bisa dihapus dari "Aplikasi" di Windows |
+| Standalone | `DDLauncher-1.0.0-windows-x64-portable.zip` | Tanpa instalasi. Hapus foldernya untuk mencopot |
 
 - Standalone: ekstrak di mana saja lalu jalankan `DDLauncher.exe`.
 - Exe-nya tidak bertanda tangan, jadi saat pertama dijalankan Windows SmartScreen ("Windows melindungi PC Anda") atau antivirus bisa memberi peringatan. Klik "Info selengkapnya" → "Tetap jalankan". Jika ingin memeriksa dulu, jalankan dari kode sumber (lihat "Untuk developer" di bawah).
@@ -57,6 +54,11 @@ Unduh salah satu dari [Releases](https://github.com/ChromeBread/DDLauncher/relea
 - **Tombol di header**: `▲▼` memutar urutan / `D&D` ganti mode D&D / `▶` mulai atau hentikan urutan (jika ditampilkan di pengaturan) / `⚙` pengaturan / `?` bantuan
 - **Ikon tray**: klik untuk menampilkan launcher. Klik kanan untuk memulai urutan atau keluar.
 - **Jendela pengaturan / bantuan**: terbuka di posisi yang tidak menutupi launcher (ruang kosong di atas, bawah, kiri, atau kanan).
+
+<p>
+<img src="docs/images/menu-tile-en.png" alt="Menu klik kanan ikon">
+<img src="docs/images/menu-launcher-en.png" alt="Menu klik kanan launcher">
+</p>
 
 ### Tampilan
 
@@ -112,13 +114,16 @@ Saat OBS berjalan sebagai administrator, file yang dijatuhkan dari Explorer tida
 
 - **Aplikasi di launcher**: seret baris (atau gunakan ↑↓) untuk mengubah urutan. Arahkan kursor ke judul kolom untuk penjelasan.
   - "+ Tambah aplikasi…" memilih exe atau pintasan lalu mengisi nama dan path-nya. "+ Tambah alamat web" menambahkan baris untuk URL; kolom "Browser" memilih browser yang membukanya (browser default bila dibiarkan). Nama di ubin ditampilkan dengan huruf kapital; untuk menampilkannya sesuai ketikan, matikan ⚙ → "Huruf nama".
+  - Klik kanan sebuah baris untuk memilih yang ingin diedit (kolom teks siap diketik, centang berganti, daftar pilihan terbuka), atau untuk memilih aplikasi / gambar ikon.<br>
+    <img src="docs/images/menu-apps-en.png" alt="Menu klik kanan tabel aplikasi">
   - Jika "Gambar ikon" kosong, ikon exe yang dipakai, atau ikon situs bila path berupa URL. Isi "Gambar ikon" dengan alamat web untuk memakai ikon situs itu (atau gambarnya langsung, untuk alamat gambar). Ikon situs diunduh sekali dan disimpan di PC ini, jadi jika situs mengganti ikonnya, yang lama tetap dipakai; atur ⚙ → "Ikon situs" ke "Ambil ulang setiap mulai" agar diperbarui setiap DDLauncher dijalankan.
   - Baris yang dihapus bisa dikembalikan dengan ↶ (Ctrl+Z). Linimasa di bawah tabel menunjukkan berapa detik setelah mulai tiap aplikasi dijalankan.
   - "Pindah ke monitor" memindahkan jendela aplikasi ke monitor itu setelah dijalankan. Aplikasi yang dijalankan sebagai administrator tidak bisa dipindahkan karena batasan Windows.<br>
     <img src="locales/help/img/monitor.png" alt="Memindahkan jendela ke monitor lain" width="480">
 - **Port**: daftarkan port yang dipakai untuk melihat apakah kosong, dipakai, atau bentrok (dipakai proses tak terduga, atau terdaftar dua kali). "Bebaskan" menutup proses yang memakai port itu (dengan konfirmasi). "Deteksi" menambahkan port yang dipakai aplikasi terdaftar (OBS dari pengaturan WebSocket-nya, aplikasi lain saat sedang berjalan). Sebagian penampil komentar dan aplikasi pembaca teks yang populer di kalangan streamer dibaca dari file pengaturannya, sehingga tetap ditemukan walau tertutup. Anda memilih port mana yang ditambahkan, dan akan diberi tahu bila dua aplikasi yang saling terhubung memakai port yang berbeda.<br>
   <img src="docs/images/settings-ports-en.png" alt="Status port" width="600">
-- **Editor warna**: opasitas, warna (bawaan / kustom) dan enam templat. Perubahan langsung tampil di launcher, dan Batal mengembalikannya.
+- **Editor warna**: opasitas, warna (bawaan / kustom) dan enam templat. Perubahan langsung tampil di launcher, dan Batal mengembalikannya.<br>
+  <img src="docs/images/settings-colors-en.png" alt="Editor warna" width="420">
 - **Info**: bahasa tampilan, versi, tanggal build, nama pengembang, dan tombol Debug Mode.
   - **Debug Mode**: ekspor / impor pengaturan, dan lainnya.
 
@@ -156,7 +161,7 @@ Untuk membuat versi folder (`dist\DDLauncher\`) dan installer (installer memerlu
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.2 installer\DDLauncher.iss
+iscc /DAppVersion=1.0.0 installer\DDLauncher.iss
 ```
 
 ### Daftar file

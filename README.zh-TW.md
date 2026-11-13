@@ -13,12 +13,9 @@
 - 平常只在角落放一個小圖示，滑鼠移上去時才展開。
 
 <p>
-<img src="docs/images/launcher-en.png" alt="啟動器" height="300">
-<img src="docs/images/settings-apps-en.png" alt="設定畫面：啟動器上的應用程式與啟動順序時間軸" width="600">
-</p>
-<p>
-<img src="docs/images/settings-colors-en.png" alt="色彩編輯器" width="420">
-<img src="docs/images/settings-info-en.png" alt="資訊頁面：語言、版本、建置日期、Debug Mode" width="420">
+<img src="docs/images/launcher-en.png" alt="啟動器" height="260">
+<img src="docs/images/dnd-en.png" alt="D&D 模式：啟動器與 D&D 區域" height="260">
+<img src="docs/images/settings-apps-en.png" alt="設定畫面：啟動器上的應用程式與啟動順序時間軸" height="260">
 </p>
 
 ## 執行環境
@@ -33,8 +30,8 @@
 
 | 版本 | 檔案 | 適合 |
 |---|---|---|
-| 安裝版 | `DDLauncher-0.3.2-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
-| 免安裝版 | `DDLauncher-0.3.2-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
+| 安裝版 | `DDLauncher-1.0.0-windows-x64-setup.exe` | 想登錄到開始功能表，並從 Windows「應用程式」移除 |
+| 免安裝版 | `DDLauncher-1.0.0-windows-x64-portable.zip` | 不想安裝。整個資料夾刪掉即可移除 |
 
 - 免安裝版：把 zip 解壓縮到任意位置，執行 `DDLauncher.exe`。
 - 因為 exe 沒有簽章，第一次啟動時 Windows SmartScreen（「Windows 已保護您的電腦」）或防毒軟體可能會警告。點「其他資訊」→「仍要執行」即可啟動。若想先確認內容，請依下方「開發者資訊」中的「從原始碼執行」使用。
@@ -57,6 +54,11 @@
 - **標題列按鈕**：`▲▼` 轉動順序／`D&D` 切換模式／`▶` 開始・停止序列（在設定中顯示時）／`⚙` 設定／`?` 說明
 - **系統匣圖示**：點一下顯示啟動器。按右鍵可開始序列或結束。
 - **設定／說明視窗**：在不會擋住啟動器的位置（上・下・左・右的空位）開啟。
+
+<p>
+<img src="docs/images/menu-tile-en.png" alt="圖示的右鍵選單">
+<img src="docs/images/menu-launcher-en.png" alt="啟動器的右鍵選單">
+</p>
 
 ### 顯示
 
@@ -112,13 +114,16 @@ OBS 以系統管理員權限執行時，從檔案總管拖放的檔案到不了 
 
 - **啟動器上的應用程式**：拖曳列（或用 ↑↓）重新排序。滑鼠移到欄標題上可看各欄說明。
   - 用「＋ 新增應用程式…」選擇 exe 或捷徑，就會新增已填好顯示名稱與路徑的列。「＋ 新增網址」會新增網址用的列；網址可在「瀏覽器」欄選擇用哪個瀏覽器開啟（不變更則使用預設瀏覽器）。圖塊上的顯示名稱會以大寫顯示；想照輸入的樣子顯示時，請取消勾選 ⚙ →「顯示名稱」。
+  - 在列上按右鍵即可選擇要編輯的項目（文字欄可直接輸入、勾選會切換、下拉選單會展開），也能從這裡選擇應用程式或圖示圖片。<br>
+    <img src="docs/images/menu-apps-en.png" alt="應用程式表格的右鍵選單">
   - 「圖示圖片」留空時使用 exe 的圖示，路徑為 URL 時使用網站圖示。在圖示圖片填入網址，會使用該網站的圖示（若是圖片網址則使用該圖片）。網站圖示取得一次後會存在這台電腦上持續使用，所以網站換了圖示也會維持舊的；把 ⚙ →「網站圖示」設為「每次啟動時重新取得」，DDLauncher 每次啟動都會重新取得。
   - 刪除的列可用「↶」按鈕（Ctrl+Z）還原。表格下方的時間軸會顯示各應用程式在開始後幾秒啟動。
   - 選擇「啟動後移至的螢幕」後，啟動後會把視窗移到該螢幕。以系統管理員權限啟動的應用程式因 Windows 的限制無法移動。<br>
     <img src="locales/help/img/monitor.png" alt="把視窗移到其他螢幕" width="480">
 - **連接埠管理**：登錄使用的連接埠後，會顯示空閒／使用中／衝突（由非預期程序使用，或重複登錄）。「釋放」會結束正在使用該連接埠的程序（會先確認）。「自動取得」可以加入登錄的應用程式使用的連接埠（OBS 從 WebSocket 設定讀取，其他應用程式則在執行中時取得）。部分實況常用的留言檢視器與朗讀軟體會從設定檔讀取，所以沒開啟也找得到。可以從找到的連接埠中選擇要新增的項目；若互相連動的應用程式之間連接埠不一致，會提醒你。<br>
   <img src="docs/images/settings-ports-en.png" alt="連接埠狀態" width="600">
-- **色彩編輯器**：可選擇不透明度、配色（預設 / 自訂）與 6 種範本。變更的顏色會立即反映在啟動器上，按取消即還原。
+- **色彩編輯器**：可選擇不透明度、配色（預設 / 自訂）與 6 種範本。變更的顏色會立即反映在啟動器上，按取消即還原。<br>
+  <img src="docs/images/settings-colors-en.png" alt="色彩編輯器" width="420">
 - **資訊**：顯示語言、版本、建置日期、開發者標示，以及 Debug Mode 的切換。
   - **Debug Mode**：設定的匯出 / 匯入等。
 
@@ -156,7 +161,7 @@ py -m venv .venv
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.2 installer\DDLauncher.iss
+iscc /DAppVersion=1.0.0 installer\DDLauncher.iss
 ```
 
 ### 檔案結構

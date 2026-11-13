@@ -13,12 +13,9 @@ Un lanceur léger pour streamers, qui reste discrètement dans un coin de l'écr
 - En temps normal, seule une petite icône reste dans le coin ; le lanceur ne s'ouvre qu'au survol.
 
 <p>
-<img src="docs/images/launcher-en.png" alt="Lanceur" height="300">
-<img src="docs/images/settings-apps-en.png" alt="Paramètres : applis du lanceur et chronologie de la séquence de lancement" width="600">
-</p>
-<p>
-<img src="docs/images/settings-colors-en.png" alt="Éditeur de couleurs" width="420">
-<img src="docs/images/settings-info-en.png" alt="Page Infos : langue, version, date de build, Debug Mode" width="420">
+<img src="docs/images/launcher-en.png" alt="Lanceur" height="260">
+<img src="docs/images/dnd-en.png" alt="Mode D&D : le lanceur et l'espace D&D" height="260">
+<img src="docs/images/settings-apps-en.png" alt="Paramètres : applis du lanceur et chronologie de la séquence de lancement" height="260">
 </p>
 
 ## Configuration requise
@@ -33,8 +30,8 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 
 | Version | Fichier | Pour qui |
 |---|---|---|
-| Installateur | `DDLauncher-0.3.2-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
-| Autonome | `DDLauncher-0.3.2-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
+| Installateur | `DDLauncher-1.0.0-windows-x64-setup.exe` | Une entrée dans le menu Démarrer, et la désinstallation depuis « Applications » de Windows |
+| Autonome | `DDLauncher-1.0.0-windows-x64-portable.zip` | Sans installation. Supprimez le dossier pour l'enlever |
 
 - Version autonome : décompressez-la où vous voulez et lancez `DDLauncher.exe`.
 - L'exe n'est pas signé : au premier lancement, Windows SmartScreen (« Windows a protégé votre ordinateur ») ou votre antivirus peut afficher un avertissement. Cliquez sur « Informations complémentaires » → « Exécuter quand même ». Pour vérifier d'abord, lancez-le depuis les sources (voir « Pour les développeurs » plus bas).
@@ -57,6 +54,11 @@ Téléchargez l'une des deux versions dans [Releases](https://github.com/ChromeB
 - **Boutons de l'en-tête** : `▲▼` faire tourner l'ordre / `D&D` activer le mode D&D / `▶` démarrer ou arrêter la séquence (si activé dans les paramètres) / `⚙` paramètres / `?` aide
 - **Icône de la zone de notification** : un clic affiche le lanceur. Clic droit pour démarrer la séquence ou quitter.
 - **Fenêtres de paramètres / d'aide** : s'ouvrent là où elles ne cachent pas le lanceur (l'espace libre au-dessus, en dessous, à gauche ou à droite).
+
+<p>
+<img src="docs/images/menu-tile-en.png" alt="Menu clic droit d'une icône">
+<img src="docs/images/menu-launcher-en.png" alt="Menu clic droit du lanceur">
+</p>
 
 ### Affichage
 
@@ -112,13 +114,16 @@ Quand OBS tourne en administrateur, les fichiers déposés depuis l’Explorateu
 
 - **Applis du lanceur** : glissez les lignes (ou utilisez ↑↓) pour les réordonner. Survolez un en-tête de colonne pour son explication.
   - « + Ajouter une appli… » choisit un exe ou un raccourci et remplit le nom et le chemin. « + Ajouter une adresse web » ajoute une ligne pour une URL ; la colonne « Navigateur » choisit le navigateur qui l'ouvre (le navigateur par défaut si vous n'y touchez pas). Les noms des tuiles s'affichent en majuscules ; pour les afficher tels que saisis, décochez ⚙ → « Casse des noms ».
+  - Clic droit sur une ligne pour choisir quoi modifier (les champs texte s'ouvrent à la saisie, les cases se cochent, les listes s'ouvrent), ou pour choisir l'appli / l'image d'icône.<br>
+    <img src="docs/images/menu-apps-en.png" alt="Menu clic droit du tableau des applis">
   - Si « Image d'icône » est vide, l'icône de l'exe est utilisée, ou celle du site quand le chemin est une URL. Mettez une adresse web dans « Image d'icône » pour utiliser l'icône de ce site (ou l'image elle-même, pour l'adresse d'une image). Les icônes des sites sont téléchargées une fois et gardées sur ce PC : si un site change d'icône, l'ancienne reste. Réglez ⚙ → « Icônes des sites » sur « Retélécharger à chaque démarrage » pour les mettre à jour à chaque lancement de DDLauncher.
   - Une ligne supprimée revient avec ↶ (Ctrl+Z). La chronologie sous le tableau montre combien de secondes après le début chaque appli se lance.
   - « Écran de destination » déplace la fenêtre de l'appli vers cet écran après le lancement. Les applis lancées en administrateur ne peuvent pas être déplacées à cause d'une restriction de Windows.<br>
     <img src="locales/help/img/monitor.png" alt="Déplacer une fenêtre vers un autre écran" width="480">
 - **Ports** : enregistrez vos ports pour voir s'ils sont libres, utilisés ou en conflit (utilisés par un processus inattendu, ou enregistrés deux fois). « Libérer » ferme le processus qui utilise ce port (après confirmation). « Détecter » ajoute les ports utilisés par vos applis (OBS depuis ses paramètres WebSocket, les autres quand elles tournent). Certains lecteurs de commentaires et logiciels de synthèse vocale courants chez les streamers sont lus dans leurs fichiers de réglages, donc trouvés même fermés. Vous choisissez les ports à ajouter, et un avertissement s’affiche si deux applis reliées ne sont pas d’accord sur un port.<br>
   <img src="docs/images/settings-ports-en.png" alt="État des ports" width="600">
-- **Éditeur de couleurs** : opacité, couleurs (par défaut / personnalisées) et six modèles. Les changements s'appliquent tout de suite au lanceur, et Annuler les rétablit.
+- **Éditeur de couleurs** : opacité, couleurs (par défaut / personnalisées) et six modèles. Les changements s'appliquent tout de suite au lanceur, et Annuler les rétablit.<br>
+  <img src="docs/images/settings-colors-en.png" alt="Éditeur de couleurs" width="420">
 - **Infos** : langue de l'interface, version, date de compilation, nom du développeur et interrupteur Debug Mode.
   - **Debug Mode** : export / import des paramètres, entre autres.
 
@@ -156,7 +161,7 @@ Pour créer la version dossier (`dist\DDLauncher\`) et l'installateur (l'install
 ```powershell
 .venv\Scripts\pip install pyinstaller
 .venv\Scripts\pyinstaller DDLauncher.spec
-iscc /DAppVersion=0.3.2 installer\DDLauncher.iss
+iscc /DAppVersion=1.0.0 installer\DDLauncher.iss
 ```
 
 ### Fichiers
